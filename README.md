@@ -13,7 +13,7 @@ I use a 4" length of the aluminum channel/diffuser, along with 10 LEDs from the 
 Aluminum LED light strip channel with white frosted diffuser:
 https://www.amazon.com/gp/product/B07KCR7K4G or https://www.amazon.com/gp/product/B01DM7EZO4
 
-WS2812B LED light strip (I chose this for the .8" spacing between LED pairs):
+WS2812B LED light strip (lp30) sized with 100leds/meter (I chose this for the .8" spacing between LED pairs):
 https://www.amazon.com/gp/product/B07BTTY4FL
 
 Annunciator logic:
