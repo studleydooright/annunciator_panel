@@ -21,4 +21,8 @@ Annunciator logic:
 - If the throttle is above a certain threshold, and the canopy or landing brake are open or extended, illuminate either/both the BRAKE|CANOPY as orange, and the MASTER as red.
 - A Test switch is used to illuminate (MASTER | GEAR | BRAKE | CANOPY | LOW VOLT) indicators (for 1sec).  Each press of the Test switch will also incrementally increase the LED brightness until reaching Max (11 presses), where upon it'll drop to minumum brightness and cycle up again.
 
-TODO: add photos of the "light box"
+Photos (see the /images folder):
+![Test Indicator Illumination](/images/test_indicators.jpg)
+![Low Throttle-Gear Up Warning](/images/low_throttle-gear_warning.jpg)
+![Gear Down indicator](/images/gear_down.jpg)
+![High Throttle-Brake and Canopy Warnings](/images/high_throttle-canopy_brake_warning.jpg)
