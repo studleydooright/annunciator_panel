@@ -31,6 +31,7 @@ int GEAR_SW = 3;
 int CANOPY_SW = 4;
 int TEST_SW = 5;
 int LB_SW = 10;
+int LOWVOLT_SW = 11;
 
 //Silence pushbutton. Once button released, alarm is silenced for 5 seconds.
 int SILENCE_SW = 6;
@@ -39,15 +40,16 @@ int SILENCE_SW = 6;
 int ALARM_OUT = 9;
 
 //Throttle position is analog
-int THROTTLE_IN = 0; // analog pin 0
-int THROTTLE_CLOSED = 100; // fast idle
-int THROTTLE_MAX = 900; // takeoff power
+int THROTTLE_IN = 1; // analog pin 0
+int THROTTLE_CLOSED = 800; // fast idle
+int THROTTLE_MAX = 200; // takeoff power
 
 int gear_warn = 0;
 int brake_warn = 0;
 int canopy_warn = 0;
+int lowvolt_warn = 0;
 int adjbright;
-  
+
 void setup() { //configure input pins as an input and enable the internal pull-up resistor
   FastLED.addLeds<NEOPIXEL, LED_PIN>(leds, NUM_LEDS);
   FastLED.setBrightness(BRIGHTNESS );
@@ -86,32 +88,44 @@ void loop() {
   int lbVal = digitalRead(LB_SW);
   int testVal = digitalRead(TEST_SW);
   int silenceVal = digitalRead(SILENCE_SW);
+  int lowvoltVal = digitalRead(LOWVOLT_SW);
   int throttleVal = analogRead(THROTTLE_IN);
   //int throttleVal = digitalRead(THROTTLE_SW);
 
-  display(gearVal, canopyVal, lbVal, throttleVal, silenceVal, testVal);
+  display(gearVal, canopyVal, lbVal, throttleVal, silenceVal, testVal, lowvoltVal);
+  float voltage = throttleVal * (5.0 / 1024.0);
+  // write the voltage value to the serial monitor:
+  Serial.println(voltage);
+  Serial.println(throttleVal);
 }
 
 /* * check the logic to see if there is a master warning to display
   returns 1 if the master warning should be set.
 */
-int isAlertState(int gearVal, int canopyVal, int lbVal, int throttleVal)
+int isAlertState(int gearVal, int canopyVal, int lbVal, int throttleVal, int lowvoltVal)
 {
   int alert = 0;
   gear_warn = 0;
   brake_warn = 0;
   canopy_warn = 0;
+  lowvolt_warn = 0;
+
+  // low volt check
+  if (lowvoltVal) {
+    alert = 1;
+    lowvolt_warn = 1;
+  }
 
   // throttle closed, and landing gear up
-  if ((throttleVal <= THROTTLE_CLOSED) && (!gearVal)) {
+  if ((throttleVal >= THROTTLE_CLOSED) && (gearVal)) {
     alert = 1;
     gear_warn = 1;
   }
 
   // throttle max and canopy not closed, and landing brake not up
-  if ((throttleVal >= THROTTLE_MAX) && (!canopyVal || !lbVal)) {
+  if ((throttleVal <= THROTTLE_MAX) && (canopyVal || !lbVal)) {
     alert = 1;
-    if (!canopyVal) {
+    if (canopyVal) {
       canopy_warn = 1;
     }
     if (!lbVal) {
@@ -127,7 +141,7 @@ int isAlertState(int gearVal, int canopyVal, int lbVal, int throttleVal)
   proper state, and handle master alarm state,
   including sound.
 */
-void display(int gearVal, int canopyVal, int lbVal, int throttleVal, int silenceVal, int testVal)
+void display(int gearVal, int canopyVal, int lbVal, int throttleVal, int silenceVal, int testVal, int lowvoltVal)
 {
   int alert = 0;
   FastLED.clear();
@@ -143,8 +157,8 @@ void display(int gearVal, int canopyVal, int lbVal, int throttleVal, int silence
   // and LOW when it's pressed.:
 
 
-  if (testVal == HIGH) {
-    Serial.println("Test button pressed");
+  if (testVal == LOW) {
+    //Serial.println("Test button pressed");
     digitalWrite(ALARM_OUT, HIGH);
     // MASTER (red)
     leds[8] = CRGB::Red;
@@ -164,47 +178,51 @@ void display(int gearVal, int canopyVal, int lbVal, int throttleVal, int silence
     // increment brightness per button press
     if (adjbright <= 255) {
       adjbright += 25;
-    FastLED.setBrightness(adjbright);
-    FastLED.show();
+      FastLED.setBrightness(adjbright);
+      FastLED.show();
     } else {
       adjbright = 1;
     }
     Serial.println(adjbright);
     delay(1000);
   } else {
-    if (gearVal == HIGH) {
-      Serial.println("Gear button pressed");
+    if (gearVal == LOW) {
+      //Serial.println("Gear button pressed");
       leds[7] = CRGB::Green;
       leds[6] = CRGB::Green;
     } else {
       leds[7] = CRGB::Black;
       leds[6] = CRGB::Black;
     }
-
     if (lbVal == HIGH) {
-      Serial.println("Brake button pressed");
+      //Serial.println("Brake button pressed");
       leds[5] = CRGB::Green;
       leds[4] = CRGB::Green;
     } else {
       leds[5] = CRGB::Black;
       leds[4] = CRGB::Black;
     }
-
-    if (canopyVal == HIGH) {
-      Serial.println("Canopy button pressed");
+    if (canopyVal == LOW) {
+      //Serial.println("Canopy button pressed");
       leds[3] = CRGB::Green;
       leds[2] = CRGB::Green;
     } else {
       leds[3] = CRGB::Black;
       leds[2] = CRGB::Black;
     }
-
+    if (lowvoltVal == LOW) {
+      leds[1] = CRGB::Yellow;
+      leds[0] = CRGB::Yellow;
+    } else {
+      leds[1] = CRGB::Black;
+      leds[0] = CRGB::Black;
+    }
     // The silence button is open normally. Logic is reversed.
     if (silenceVal) {
       silencedAt = now();
     }
 
-    alert = isAlertState(gearVal, canopyVal, lbVal, throttleVal);
+    alert = isAlertState(gearVal, canopyVal, lbVal, throttleVal, lowvoltVal);
 
     // output the master alarm status
     if (alert) {
@@ -212,20 +230,25 @@ void display(int gearVal, int canopyVal, int lbVal, int throttleVal, int silence
       leds[9] = CRGB::Red;
       leds[8] = CRGB::Red;
       if (gear_warn) {
-        Serial.println("Caution issued due to Gear warning");
+        //Serial.println("Caution issued due to Gear warning");
         leds[7] = CRGB::Orange;
         leds[6] = CRGB::Orange;
       }
       if (brake_warn) {
-        Serial.println("Caution issued due to Brake warning");
+        //Serial.println("Caution issued due to Brake warning");
         leds[5] = CRGB::Orange;
         leds[4] = CRGB::Orange;
       }
       if (canopy_warn) {
-        Serial.println("Caution issued due to Canopy warning");
+        //Serial.println("Caution issued due to Canopy warning");
         leds[3] = CRGB::Orange;
         leds[2] = CRGB::Orange;
       }
+      /* if (lowvolt_warn) {
+        Serial.println("Caution issued due to Low Volt warning");
+        leds[3] = CRGB::Orange;
+        leds[2] = CRGB::Orange;
+        } */
       if (now() > silencedAt + 60) {
         digitalWrite(ALARM_OUT, HIGH);
       } else {
