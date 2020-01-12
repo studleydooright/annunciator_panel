@@ -100,7 +100,7 @@ void loop() {
   //int throttleVal = digitalRead(THROTTLE_SW);
 
   display(gearVal, canopyVal, lbVal, throttleVal, silenceVal, testVal, lowvoltVal);
-  float voltage = throttleVal * (5.0 / 1024.0);
+  float voltage = throttleVal * (5.0 / 1023.0);
   // write the voltage value to the serial monitor:
   Serial.println(voltage);
   Serial.println(throttleVal);
