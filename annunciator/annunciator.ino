@@ -39,10 +39,17 @@ int SILENCE_SW = 6;
 //Alarm sounder is on pin 3
 int ALARM_OUT = 9;
 
-//Throttle position is analog
+//Throttle position is analog from MAP sensor
+// MAP Sensor voltage map (0-5 volt):
+// Manifold valuum ->
+// Wide open Throttle <-     -> Idle
+// Hg  0  2.9  5.9  8.9  11.8  14.8  17.7  20.7  23.7  26.7  29.6
+// Vol 4.9 4.4 3.8  3.3   2.7   2.2   1.7   1.1   0.6   0.3   0.3
+// Arduino Analog to Digital conv range 0 - 1023
+
 int THROTTLE_IN = 1; // analog pin 0
-int THROTTLE_CLOSED = 800; // fast idle
-int THROTTLE_MAX = 200; // takeoff power
+int THROTTLE_CLOSED = 800; // fast idle up to 1023
+int THROTTLE_MAX = 200; // takeoff power down to 0
 
 int gear_warn = 0;
 int brake_warn = 0;
