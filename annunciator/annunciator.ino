@@ -219,7 +219,7 @@ void display(int gearVal, int canopyVal, int lbVal, int throttleVal, int silence
       leds[3] = CRGB::Black;
       leds[2] = CRGB::Black;
     }
-    if (lowvoltVal == HIGH) {
+    if (lowvoltVal == LOW) {
       //Serial.println("Low Volt is lit");
       leds[1] = CRGB::Yellow;
       leds[0] = CRGB::Yellow;
@@ -254,11 +254,11 @@ void display(int gearVal, int canopyVal, int lbVal, int throttleVal, int silence
         leds[3] = CRGB::Orange;
         leds[2] = CRGB::Orange;
       }
-       if (lowvolt_warn) {
-        Serial.println("Caution issued due to Low Volt warning");
-        leds[1] = CRGB::Yellow;
-        leds[0] = CRGB::Yellow;
-        }
+      if (lowvolt_warn) {
+        //Serial.println("Caution issued due to Low Volt warning");
+        //leds[1] = CRGB::Yellow;
+        //leds[0] = CRGB::Yellow;
+      }
       if (now() > silencedAt + 60) {
         digitalWrite(ALARM_OUT, HIGH);
       } else {
