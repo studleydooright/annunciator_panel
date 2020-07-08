@@ -20,7 +20,7 @@
 
 #define LED_PIN     2
 #define NUM_LEDS    10
-#define BRIGHTNESS  10
+#define BRIGHTNESS  70
 //#define CHR_DELAY 1000 // time in ms between characters
 
 CRGB leds[NUM_LEDS];
@@ -48,8 +48,8 @@ int ALARM_OUT = 9;
 // Arduino Analog to Digital conv range 0 - 1023
 
 int THROTTLE_IN = 1; // analog pin 0
-int THROTTLE_CLOSED = 800; // fast idle
-int THROTTLE_MAX = 400; // takeoff power
+int THROTTLE_CLOSED = 184; // fast idle
+int THROTTLE_MAX = 253; // takeoff power
 
 int gear_warn = 0;
 int brake_warn = 0;
@@ -65,6 +65,8 @@ void setup() { //configure input pins as an input and enable the internal pull-u
   pinMode(LB_SW, INPUT_PULLUP);
   pinMode(SILENCE_SW, INPUT_PULLUP);
   pinMode(TEST_SW, INPUT_PULLUP);
+  pinMode(LOWVOLT_SW, INPUT_PULLUP);
+  pinMode(THROTTLE_IN, INPUT_PULLUP);
 
   // configure output pins for output.
 
@@ -119,7 +121,7 @@ int isAlertState(int gearVal, int canopyVal, int lbVal, int throttleVal, int low
 
   // low volt check
   if (lowvoltVal) {
-    alert = 1;
+    //alert = 1;
     lowvolt_warn = 1;
   }
 
@@ -217,7 +219,8 @@ void display(int gearVal, int canopyVal, int lbVal, int throttleVal, int silence
       leds[3] = CRGB::Black;
       leds[2] = CRGB::Black;
     }
-    if (lowvoltVal == LOW) {
+    if (lowvoltVal == HIGH) {
+      //Serial.println("Low Volt is lit");
       leds[1] = CRGB::Yellow;
       leds[0] = CRGB::Yellow;
     } else {
@@ -251,11 +254,11 @@ void display(int gearVal, int canopyVal, int lbVal, int throttleVal, int silence
         leds[3] = CRGB::Orange;
         leds[2] = CRGB::Orange;
       }
-      /* if (lowvolt_warn) {
+       if (lowvolt_warn) {
         Serial.println("Caution issued due to Low Volt warning");
-        leds[3] = CRGB::Orange;
-        leds[2] = CRGB::Orange;
-        } */
+        leds[1] = CRGB::Yellow;
+        leds[0] = CRGB::Yellow;
+        }
       if (now() > silencedAt + 60) {
         digitalWrite(ALARM_OUT, HIGH);
       } else {
