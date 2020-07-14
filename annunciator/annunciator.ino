@@ -48,7 +48,7 @@ int ALARM_OUT = 9;
 // Arduino Analog to Digital conv range 0 - 1023
 
 int THROTTLE_IN = 1; // analog pin 0
-int THROTTLE_CLOSED = 184; // fast idle
+int THROTTLE_CLOSED = 200; // fast idle
 int THROTTLE_MAX = 253; // takeoff power
 
 int gear_warn = 0;
@@ -66,7 +66,7 @@ void setup() { //configure input pins as an input and enable the internal pull-u
   pinMode(SILENCE_SW, INPUT_PULLUP);
   pinMode(TEST_SW, INPUT_PULLUP);
   pinMode(LOWVOLT_SW, INPUT_PULLUP);
-  pinMode(THROTTLE_IN, INPUT_PULLUP);
+  pinMode(THROTTLE_IN, INPUT);
 
   // configure output pins for output.
 
@@ -104,8 +104,11 @@ void loop() {
   display(gearVal, canopyVal, lbVal, throttleVal, silenceVal, testVal, lowvoltVal);
   float voltage = throttleVal * (5.0 / 1023.0);
   // write the voltage value to the serial monitor:
-  Serial.println(voltage);
+  //Serial.println(voltage);
   Serial.println(throttleVal);
+  //Serial.println(lowvoltVal);
+  //Serial.println(gearVal);
+  //Serial.println(lbVal);
 }
 
 /* * check the logic to see if there is a master warning to display
@@ -122,20 +125,20 @@ int isAlertState(int gearVal, int canopyVal, int lbVal, int throttleVal, int low
   // low volt check
   if (lowvoltVal) {
     //alert = 1;
-    lowvolt_warn = 1;
+    //lowvolt_warn = 1;
   }
 
-  // throttle closed, and landing gear up
-  if ((throttleVal >= THROTTLE_CLOSED) && (gearVal)) {
+  // throttle closed, and landing gear up (switch open; value 0)
+  if ((throttleVal <= THROTTLE_CLOSED) && (!gearVal)) {
     alert = 1;
     gear_warn = 1;
   }
 
-  // throttle max and canopy not closed, and landing brake not up
-  if ((throttleVal <= THROTTLE_MAX) && (canopyVal || !lbVal)) {
+  // throttle max and canopy not closed, and landing brake not up (switch open; value 0)
+  if ((throttleVal >= THROTTLE_MAX) && (/*canopyVal ||*/ !lbVal)) {
     alert = 1;
     if (canopyVal) {
-      canopy_warn = 1;
+      //canopy_warn = 1;
     }
     if (!lbVal) {
       brake_warn = 1;
@@ -211,15 +214,15 @@ void display(int gearVal, int canopyVal, int lbVal, int throttleVal, int silence
       leds[5] = CRGB::Black;
       leds[4] = CRGB::Black;
     }
-    if (canopyVal == LOW) {
+    /* if (canopyVal == LOW) {
       //Serial.println("Canopy button pressed");
       leds[3] = CRGB::Green;
       leds[2] = CRGB::Green;
     } else {
       leds[3] = CRGB::Black;
       leds[2] = CRGB::Black;
-    }
-    if (lowvoltVal == LOW) {
+    } */
+    if (lowvoltVal == HIGH) {
       //Serial.println("Low Volt is lit");
       leds[1] = CRGB::Yellow;
       leds[0] = CRGB::Yellow;
@@ -236,7 +239,7 @@ void display(int gearVal, int canopyVal, int lbVal, int throttleVal, int silence
 
     // output the master alarm status
     if (alert) {
-      Serial.println("Master Caution issued");
+      //Serial.println("Master Caution issued");
       leds[9] = CRGB::Red;
       leds[8] = CRGB::Red;
       if (gear_warn) {
