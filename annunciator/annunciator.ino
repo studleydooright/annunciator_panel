@@ -105,9 +105,9 @@ void loop() {
   float voltage = throttleVal * (5.0 / 1023.0);
   // write the voltage value to the serial monitor:
   //Serial.println(voltage);
-  Serial.println(throttleVal);
+  //Serial.println(throttleVal);
   //Serial.println(lowvoltVal);
-  //Serial.println(gearVal);
+  Serial.println(gearVal);
   //Serial.println(lbVal);
 }
 
@@ -128,13 +128,13 @@ int isAlertState(int gearVal, int canopyVal, int lbVal, int throttleVal, int low
     //lowvolt_warn = 1;
   }
 
-  // throttle closed, and landing gear up (switch open; value 0)
-  if ((throttleVal <= THROTTLE_CLOSED) && (!gearVal)) {
+  // throttle closed, and landing gear up (switch closed value 1 is gear up HIGH; switch open value 0 LOW is gear down and safe!)
+  if ((throttleVal <= THROTTLE_CLOSED) && (gearVal==HIGH)) {
     alert = 1;
     gear_warn = 1;
   }
 
-  // throttle max and canopy not closed, and landing brake not up (switch open; value 0)
+  // throttle max and canopy not closed, and landing brake not up (switch open; value 0, switch closed is value 1, LB is fully closed)
   if ((throttleVal >= THROTTLE_MAX) && (/*canopyVal ||*/ !lbVal)) {
     alert = 1;
     if (canopyVal) {
