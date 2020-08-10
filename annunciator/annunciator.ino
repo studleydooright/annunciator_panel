@@ -48,8 +48,8 @@ int ALARM_OUT = 9;
 // Arduino Analog to Digital conv range 0 - 1023
 
 int THROTTLE_IN = 1; // analog pin 0
-int THROTTLE_CLOSED = 180; // fast idle
-int THROTTLE_MAX = 300; // takeoff power
+int THROTTLE_CLOSED = 150; // fast idle
+int THROTTLE_MAX = 350; // takeoff power
 
 int gear_warn = 0;
 int brake_warn = 0;
