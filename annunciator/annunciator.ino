@@ -138,12 +138,18 @@ int isAlertState(int gearVal, int canopyVal, int lbVal, int throttleVal, int low
   // throttle max and canopy not closed, and landing brake not up (switch open; value 0, switch closed is value 1, LB is fully closed)
   if ((throttleVal >= THROTTLE_MAX) && (canopyVal==HIGH || lbVal==LOW)) {
     alert = 1;
-    if (canopyVal) {
+    if (canopyVal==HIGH) {
       canopy_warn = 1;
     }
-    if (!lbVal) {
+    if (lbVal==LOW) {
       brake_warn = 1;
     }
+
+  // Landing brake is down, without the landing gear down (landing config); issue a warning
+  if ((lbVal==LOW) && (gearVal==HIGH)) {
+    alert =1;
+    brake_warn = 1;
+  }
   }
 
 
