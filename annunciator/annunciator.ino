@@ -4,8 +4,8 @@
 /*
   Annunciator Panel SketchThis program will light up the Annunciator Panel based on curent status of the Aircraft.The circuit:
   Momentary switch attached from pin 4 to ground (Nose Gear)
-  Momentary switch attached from pin 6 to ground (Canopy)
-  Momentary switch attached from pin 7 to ground (Landing Brake)
+  Momentary switch attached from pin 6 to ground (Canopy); 0 is CLOSED (LOW), 1 is OPEN (HIGH)
+  Momentary switch attached from pin 7 to ground (Landing Brake); 0 is OPEN (LOW), 1 is CLOSED (HIGH)
   Momentary switch attached from pin 5 to ground (alarm silence)
   sounder attached from pin 3 to ground
   Potentiometer connected to A0 (Throttle position)
@@ -105,10 +105,11 @@ void loop() {
   float voltage = throttleVal * (5.0 / 1023.0);
   // write the voltage value to the serial monitor:
   //Serial.println(voltage);
-  //Serial.println(throttleVal);
+  Serial.println(throttleVal);
   //Serial.println(lowvoltVal);
-  Serial.println(gearVal);
+  //Serial.println(gearVal);
   //Serial.println(lbVal);
+  //Serial.println(canopyVal);
 }
 
 /* * check the logic to see if there is a master warning to display
@@ -135,10 +136,10 @@ int isAlertState(int gearVal, int canopyVal, int lbVal, int throttleVal, int low
   }
 
   // throttle max and canopy not closed, and landing brake not up (switch open; value 0, switch closed is value 1, LB is fully closed)
-  if ((throttleVal >= THROTTLE_MAX) && (/*canopyVal ||*/ !lbVal)) {
+  if ((throttleVal >= THROTTLE_MAX) && (canopyVal==HIGH || lbVal==LOW)) {
     alert = 1;
     if (canopyVal) {
-      //canopy_warn = 1;
+      canopy_warn = 1;
     }
     if (!lbVal) {
       brake_warn = 1;
@@ -214,14 +215,14 @@ void display(int gearVal, int canopyVal, int lbVal, int throttleVal, int silence
       leds[5] = CRGB::Black;
       leds[4] = CRGB::Black;
     }
-    /* if (canopyVal == LOW) {
+     if (canopyVal == LOW) { //LOW means the microswitches are pressed (canopy closed)
       //Serial.println("Canopy button pressed");
       leds[3] = CRGB::Green;
       leds[2] = CRGB::Green;
     } else {
       leds[3] = CRGB::Black;
       leds[2] = CRGB::Black;
-    } */
+    }
     if (lowvoltVal == HIGH) {
       //Serial.println("Low Volt is lit");
       leds[1] = CRGB::Yellow;
