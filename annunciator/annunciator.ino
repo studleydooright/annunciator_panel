@@ -175,6 +175,8 @@ void display(int gearVal, int canopyVal, int lbVal, int throttleVal, int silence
   // logic is inverted. It goes HIGH when it's open,
   // and LOW when it's pressed.:
 
+  // Set the alert state
+  alert = isAlertState(gearVal, canopyVal, lbVal, throttleVal, lowvoltVal);
 
   if (testVal == LOW) {
     //Serial.println("Test button pressed");
@@ -205,44 +207,42 @@ void display(int gearVal, int canopyVal, int lbVal, int throttleVal, int silence
     Serial.println(adjbright);
     delay(1000);
   } else {
-    if (gearVal == LOW) {
-      //Serial.println("Gear button pressed");
-      leds[7] = CRGB::Green;
-      leds[6] = CRGB::Green;
-    } else {
+    if ((gearVal == HIGH) && (!alert)) { //HIGH means that the gear is extended; LOW means that the gear is retracted
       leds[7] = CRGB::Black;
       leds[6] = CRGB::Black;
+    } else { //LOW; Gear retracted
+      //Serial.println("Gear button pressed");
+      //leds[7] = CRGB::Green; //when gear is extended; display the typical GREEN led
+      //leds[6] = CRGB::Green;
     }
-    if (lbVal == HIGH) {
-      //Serial.println("Brake button pressed");
-      leds[5] = CRGB::Green;
-      leds[4] = CRGB::Green;
-    } else {
+    if ((lbVal == LOW) && (!alert)) { //LOW means LB is extended; HIGH means that the LB is retracted
       leds[5] = CRGB::Black;
       leds[4] = CRGB::Black;
+    } else { //HIGH; Landing Brake retracted
+      //Serial.println("Brake button pressed");
+      //leds[5] = CRGB::Green; //when LB is retracted; display the typical GREEN led
+      //leds[4] = CRGB::Green;
     }
-     if (canopyVal == LOW) { //LOW means the microswitches are pressed (canopy closed)
-      //Serial.println("Canopy button pressed");
-      leds[3] = CRGB::Green;
-      leds[2] = CRGB::Green;
-    } else {
+     if ((canopyVal == HIGH)  && (!alert)) { //HIGH means the canopy is open; LOW means the microswitches are pressed (canopy closed)
       leds[3] = CRGB::Black;
       leds[2] = CRGB::Black;
+    } else { //LOW; Canopy closed
+      //Serial.println("Canopy button pressed");
+      //leds[3] = CRGB::Green; //when canopy is closed; display the typical GREEN led
+      //leds[2] = CRGB::Green;
     }
-    if (lowvoltVal == HIGH) {
-      //Serial.println("Low Volt is lit");
-      leds[1] = CRGB::Yellow;
-      leds[0] = CRGB::Yellow;
-    } else {
+    if ((lowvoltVal == LOW) && (!alert)) {
       leds[1] = CRGB::Black;
       leds[0] = CRGB::Black;
+    } else {
+      //Serial.println("Low Volt is lit");
+      //leds[1] = CRGB::Yellow;
+      //leds[0] = CRGB::Yellow;
     }
     // The silence button is open normally. Logic is reversed.
     if (silenceVal) {
       silencedAt = now();
     }
-
-    alert = isAlertState(gearVal, canopyVal, lbVal, throttleVal, lowvoltVal);
 
     // output the master alarm status
     if (alert) {
