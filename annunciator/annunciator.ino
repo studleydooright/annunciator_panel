@@ -57,10 +57,12 @@ int canopy_warn = 0;
 int lowvolt_warn = 0;
 int adjbright;
 int alert = 0;
-// Set the switch positions (HIGH/LOW) for the gear, landing brake, and canopy
-int GEAR_IS_EXTENDED = HIGH;
-int LB_IS_EXTENDED = LOW;
-int CANOPY_IS_OPEN = HIGH;
+
+// Set the switch positions (HIGH/LOW) for the gear, landing brake, and canopy; change these as needed for testing
+int GEAR_IS_RETRACTED = HIGH; //N40EB needs HIGH
+int LB_IS_EXTENDED = LOW; //N40EB needs LOW
+int CANOPY_IS_OPEN = HIGH; //N40EB needs HIGH
+int TEST_IS_PRESSED = LOW;
 
 void setup() { //configure input pins as an input and enable the internal pull-up resistor
   FastLED.addLeds<NEOPIXEL, LED_PIN>(leds, NUM_LEDS);
@@ -129,12 +131,12 @@ int isAlertState(int gearVal, int canopyVal, int lbVal, int throttleVal, int low
   }
 
   // throttle closed, and landing gear up (switch closed value 1 is gear up HIGH; switch open value 0 LOW is gear down and safe!)
-  if ((throttleVal <= THROTTLE_CLOSED) && (GEAR_IS_EXTENDED)) {
+  if ((throttleVal <= THROTTLE_CLOSED) && (GEAR_IS_RETRACTED)) {
     alert = 1;
     gear_warn = 1;
   }
 
-  // throttle max and canopy not closed, and landing brake not up (switch open; value 0, switch closed is value 1, LB is fully closed)
+  // throttle max and canopy not closed, and/or landing brake not up (switch open; value 0, switch closed is value 1, LB is fully closed)
   if ((throttleVal >= THROTTLE_MAX) && (CANOPY_IS_OPEN || LB_IS_EXTENDED)) {
     alert = 1;
     if (CANOPY_IS_OPEN) {
@@ -145,7 +147,7 @@ int isAlertState(int gearVal, int canopyVal, int lbVal, int throttleVal, int low
     }
 
   // Landing brake is down, without the landing gear down (landing config); issue a warning
-  if ((LB_IS_EXTENDED) && (GEAR_IS_EXTENDED)) {
+  if ((LB_IS_EXTENDED) && (GEAR_IS_RETRACTED)) {
     alert =1;
     brake_warn = 1;
   }
@@ -178,7 +180,7 @@ void display(int gearVal, int canopyVal, int lbVal, int throttleVal, int silence
   // logic is inverted. It goes HIGH when it's open,
   // and LOW when it's pressed.:
 
-  if (testVal == LOW) {
+  if (TEST_IS_PRESSED) {
     //Serial.println("Test button pressed");
     digitalWrite(ALARM_OUT, HIGH);
     // MASTER (red)
@@ -207,10 +209,10 @@ void display(int gearVal, int canopyVal, int lbVal, int throttleVal, int silence
     Serial.println(adjbright);
     delay(1000);
   } else {
-    if ((GEAR_IS_EXTENDED) && (!alert)) { //HIGH means that the gear is extended; LOW means that the gear is retracted
+    if ((GEAR_IS_RETRACTED) && (!alert)) { //HIGH means that the gear is retracted; LOW means that the gear is extended
       leds[7] = CRGB::Black;
       leds[6] = CRGB::Black;
-    } else { //LOW; Gear retracted
+    } else { //LOW; Gear extended
       Serial.println("Gear button pressed");
       //leds[7] = CRGB::Green; //when gear is extended; display the typical GREEN led
       //leds[6] = CRGB::Green;
