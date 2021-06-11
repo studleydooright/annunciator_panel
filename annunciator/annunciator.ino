@@ -64,6 +64,17 @@ int LB_IS_EXTENDED = LOW; //N40EB needs LOW
 int CANOPY_IS_OPEN = HIGH; //N40EB needs HIGH
 int TEST_IS_PRESSED = LOW;
 
+// Define the number of throttle samples to keep track of. The higher the number, the
+// more the readings will be smoothed, but the slower the output will respond to
+// the input. Using a constant rather than a normal variable lets us use this
+// value to determine the size of the readings array.
+const int numReadings = 20;
+
+int readings[numReadings];      // the readings from the analog input
+int readIndex = 0;              // the index of the current reading
+int total = 0;                  // the running total
+int throttleAverage = 0;        // the throttleAverage
+
 void setup() { //configure input pins as an input and enable the internal pull-up resistor
   FastLED.addLeds<NEOPIXEL, LED_PIN>(leds, NUM_LEDS);
   FastLED.setBrightness(BRIGHTNESS );
@@ -92,6 +103,10 @@ void setup() { //configure input pins as an input and enable the internal pull-u
 
   Serial.println("done");
   delay(1000);
+  // initialize all the readings to 0:
+  for (int thisReading = 0; thisReading < numReadings; thisReading++) {
+    readings[thisReading] = 0;
+  }
 }
 
 /** * Read all the switches and call the display function
@@ -108,23 +123,45 @@ void loop() {
   //int throttleVal = digitalRead(THROTTLE_SW);
   float voltage = throttleVal * (5.0 / 1023.0);
 
+  // subtract the last reading of the throttle to average it out:
+  total = total - readings[readIndex];
+  // read from the sensor:
+  readings[readIndex] = throttleVal;
+  // add the reading to the total:
+  total = total + readings[readIndex];
+  // advance to the next position in the array:
+  readIndex = readIndex + 1;
+
+  // if we're at the end of the array...
+  if (readIndex >= numReadings) {
+    // ...wrap around to the beginning:
+    readIndex = 0;
+  }
+
+  // calculate the throttleAverage:
+  throttleAverage = total / numReadings;
+  // send it to the computer as ASCII digits
+  Serial.println(throttleAverage);
+  delay(1);        // delay in between reads for stability
+
   // Set the alert state
-  alert = isAlertState(gearVal, canopyVal, lbVal, throttleVal, lowvoltVal);
+  alert = isAlertState(gearVal, canopyVal, lbVal, throttleAverage, lowvoltVal);
   
-  display(gearVal, canopyVal, lbVal, throttleVal, silenceVal, testVal, lowvoltVal);
+  display(gearVal, canopyVal, lbVal, throttleAverage, silenceVal, testVal, lowvoltVal);
   // write the voltage value to the serial monitor:
   //Serial.println(voltage);
-  Serial.println(throttleVal);
+  Serial.println(throttleAverage);
   //Serial.println(lowvoltVal);
   //Serial.println(gearVal);
   //Serial.println(lbVal);
   //Serial.println(canopyVal);
+ 
 }
 
 /* * check the logic to see if there is a master warning to display
   returns 1 if the master warning should be set.
 */
-int isAlertState(int gearVal, int canopyVal, int lbVal, int throttleVal, int lowvoltVal)
+int isAlertState(int gearVal, int canopyVal, int lbVal, int throttleAverage, int lowvoltVal)
 {
 
   // low volt check
@@ -134,7 +171,7 @@ int isAlertState(int gearVal, int canopyVal, int lbVal, int throttleVal, int low
   }
 
   // throttle closed, and landing gear up (switch closed value 1 is gear up HIGH; switch open value 0 LOW is gear down and safe!)
-  if ((throttleVal <= THROTTLE_LOW) && (gearVal == GEAR_IS_RETRACTED)) {
+  if ((throttleAverage <= THROTTLE_LOW) && (gearVal == GEAR_IS_RETRACTED)) {
     alert = 1;
     gear_warn = 1;
     Serial.println("Throttle is closed, gear retracted; gear_warn = 1");
@@ -143,7 +180,7 @@ int isAlertState(int gearVal, int canopyVal, int lbVal, int throttleVal, int low
   }
 
   // throttle max and canopy not closed, and/or landing brake not up (switch open; value 0, switch closed is value 1, LB is fully closed)
-  if ((throttleVal >= THROTTLE_ADVANCED) && ((canopyVal == CANOPY_IS_OPEN) || (lbVal == LB_IS_EXTENDED))) {
+  if ((throttleAverage >= THROTTLE_ADVANCED) && ((canopyVal == CANOPY_IS_OPEN) || (lbVal == LB_IS_EXTENDED))) {
     alert = 1;
     if (canopyVal == CANOPY_IS_OPEN) {
       canopy_warn = 1;
@@ -159,8 +196,9 @@ int isAlertState(int gearVal, int canopyVal, int lbVal, int throttleVal, int low
     }
   }
 
- // Landing brake is down, without the landing gear down (landing config); issue a warning
-  if ((throttleVal >= THROTTLE_ADVANCED) && (lbVal == LB_IS_EXTENDED) && (gearVal == GEAR_IS_RETRACTED)) {
+/*
+ // Landing brake is extended, without the landing gear extended (landing config); issue a warning
+  if ((throttleAverage >= THROTTLE_ADVANCED) && (lbVal == LB_IS_EXTENDED) && (gearVal == GEAR_IS_RETRACTED)) {
     alert = 1;
     brake_warn = 1;
     Serial.println("Landing Brake is down with the Gear retracted");
@@ -168,6 +206,7 @@ int isAlertState(int gearVal, int canopyVal, int lbVal, int throttleVal, int low
     if (gearVal == !GEAR_IS_RETRACTED)
     gear_warn = 0;
   }
+  */
   
   //Serial.println(alert);
   return alert;
@@ -177,7 +216,7 @@ int isAlertState(int gearVal, int canopyVal, int lbVal, int throttleVal, int low
   proper state, and handle master alarm state,
   including sound.
 */
-void display(int gearVal, int canopyVal, int lbVal, int throttleVal, int silenceVal, int testVal, int lowvoltVal)
+void display(int gearVal, int canopyVal, int lbVal, int throttleAverage, int silenceVal, int testVal, int lowvoltVal)
 {
 
   Serial.println("Alert state ");
