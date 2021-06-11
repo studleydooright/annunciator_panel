@@ -56,6 +56,7 @@ int brake_warn = 0;
 int canopy_warn = 0;
 int lowvolt_warn = 0;
 int adjbright;
+int alert = 0;
 
 void setup() { //configure input pins as an input and enable the internal pull-up resistor
   FastLED.addLeds<NEOPIXEL, LED_PIN>(leds, NUM_LEDS);
@@ -69,7 +70,6 @@ void setup() { //configure input pins as an input and enable the internal pull-u
   pinMode(THROTTLE_IN, INPUT);
 
   // configure output pins for output.
-
 
   Serial.begin(9600);
   Serial.print("hello!");
@@ -100,9 +100,9 @@ void loop() {
   int lowvoltVal = digitalRead(LOWVOLT_SW);
   int throttleVal = analogRead(THROTTLE_IN);
   //int throttleVal = digitalRead(THROTTLE_SW);
+  float voltage = throttleVal * (5.0 / 1023.0);
 
   display(gearVal, canopyVal, lbVal, throttleVal, silenceVal, testVal, lowvoltVal);
-  float voltage = throttleVal * (5.0 / 1023.0);
   // write the voltage value to the serial monitor:
   //Serial.println(voltage);
   Serial.println(throttleVal);
@@ -117,11 +117,6 @@ void loop() {
 */
 int isAlertState(int gearVal, int canopyVal, int lbVal, int throttleVal, int lowvoltVal)
 {
-  int alert = 0;
-  gear_warn = 0;
-  brake_warn = 0;
-  canopy_warn = 0;
-  lowvolt_warn = 0;
 
   // low volt check
   if (lowvoltVal) {
@@ -162,8 +157,12 @@ int isAlertState(int gearVal, int canopyVal, int lbVal, int throttleVal, int low
 */
 void display(int gearVal, int canopyVal, int lbVal, int throttleVal, int silenceVal, int testVal, int lowvoltVal)
 {
-  int alert = 0;
-  FastLED.clear();
+  // Set the alert state
+  alert = isAlertState(gearVal, canopyVal, lbVal, throttleVal, lowvoltVal);
+  
+  //int alert = 0;
+
+  //FastLED.clear();
   // gap is the cycle time for the tone. state is the tone state.
   static int gap = 0;
   static int state = LOW;
@@ -175,9 +174,6 @@ void display(int gearVal, int canopyVal, int lbVal, int throttleVal, int silence
   // logic is inverted. It goes HIGH when it's open,
   // and LOW when it's pressed.:
 
-  // Set the alert state
-  alert = isAlertState(gearVal, canopyVal, lbVal, throttleVal, lowvoltVal);
-
   if (testVal == LOW) {
     //Serial.println("Test button pressed");
     digitalWrite(ALARM_OUT, HIGH);
@@ -185,14 +181,14 @@ void display(int gearVal, int canopyVal, int lbVal, int throttleVal, int silence
     leds[8] = CRGB::Red;
     leds[9] = CRGB::Red;
     // GEAR (green)
-    leds[7] = CRGB::Green;
-    leds[6] = CRGB::Green;
+    leds[7] = CRGB::Orange;
+    leds[6] = CRGB::Orange;
     // BRAKE (green)
-    leds[5] = CRGB::Green;
-    leds[4] = CRGB::Green;
+    leds[5] = CRGB::Orange;
+    leds[4] = CRGB::Orange;
     // CANOPY (green)
-    leds[3] = CRGB::Green;
-    leds[2] = CRGB::Green;
+    leds[3] = CRGB::Orange;
+    leds[2] = CRGB::Orange;
     //LOW VOLT (yellow)
     leds[1] = CRGB::Yellow;
     leds[0] = CRGB::Yellow;
@@ -211,7 +207,7 @@ void display(int gearVal, int canopyVal, int lbVal, int throttleVal, int silence
       leds[7] = CRGB::Black;
       leds[6] = CRGB::Black;
     } else { //LOW; Gear retracted
-      //Serial.println("Gear button pressed");
+      Serial.println("Gear button pressed");
       //leds[7] = CRGB::Green; //when gear is extended; display the typical GREEN led
       //leds[6] = CRGB::Green;
     }
@@ -219,7 +215,7 @@ void display(int gearVal, int canopyVal, int lbVal, int throttleVal, int silence
       leds[5] = CRGB::Black;
       leds[4] = CRGB::Black;
     } else { //HIGH; Landing Brake retracted
-      //Serial.println("Brake button pressed");
+      Serial.println("Brake button pressed");
       //leds[5] = CRGB::Green; //when LB is retracted; display the typical GREEN led
       //leds[4] = CRGB::Green;
     }
@@ -227,7 +223,7 @@ void display(int gearVal, int canopyVal, int lbVal, int throttleVal, int silence
       leds[3] = CRGB::Black;
       leds[2] = CRGB::Black;
     } else { //LOW; Canopy closed
-      //Serial.println("Canopy button pressed");
+      Serial.println("Canopy button pressed");
       //leds[3] = CRGB::Green; //when canopy is closed; display the typical GREEN led
       //leds[2] = CRGB::Green;
     }
