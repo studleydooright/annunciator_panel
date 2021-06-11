@@ -48,8 +48,8 @@ int ALARM_OUT = 9;
 // Arduino Analog to Digital conv range 0 - 1023
 
 int THROTTLE_IN = 1; // analog pin 0
-int THROTTLE_CLOSED = 150; // fast idle
-int THROTTLE_MAX = 350; // takeoff power
+int THROTTLE_LOW = 150; // fast idle (N40EB needs 150)
+int THROTTLE_ADVANCED = 350; // takeoff power (N40EB needs 350)
 
 int gear_warn = 0;
 int brake_warn = 0;
@@ -108,6 +108,9 @@ void loop() {
   //int throttleVal = digitalRead(THROTTLE_SW);
   float voltage = throttleVal * (5.0 / 1023.0);
 
+  // Set the alert state
+  alert = isAlertState(gearVal, canopyVal, lbVal, throttleVal, lowvoltVal);
+  
   display(gearVal, canopyVal, lbVal, throttleVal, silenceVal, testVal, lowvoltVal);
   // write the voltage value to the serial monitor:
   //Serial.println(voltage);
@@ -131,29 +134,42 @@ int isAlertState(int gearVal, int canopyVal, int lbVal, int throttleVal, int low
   }
 
   // throttle closed, and landing gear up (switch closed value 1 is gear up HIGH; switch open value 0 LOW is gear down and safe!)
-  if ((throttleVal <= THROTTLE_CLOSED) && (GEAR_IS_RETRACTED)) {
+  if ((throttleVal <= THROTTLE_LOW) && (gearVal == GEAR_IS_RETRACTED)) {
     alert = 1;
     gear_warn = 1;
+    Serial.println("Throttle is closed, gear retracted; gear_warn = 1");
+  } else {
+    alert = 0;
   }
 
   // throttle max and canopy not closed, and/or landing brake not up (switch open; value 0, switch closed is value 1, LB is fully closed)
-  if ((throttleVal >= THROTTLE_MAX) && (CANOPY_IS_OPEN || LB_IS_EXTENDED)) {
+  if ((throttleVal >= THROTTLE_ADVANCED) && ((canopyVal == CANOPY_IS_OPEN) || (lbVal == LB_IS_EXTENDED))) {
     alert = 1;
-    if (CANOPY_IS_OPEN) {
+    if (canopyVal == CANOPY_IS_OPEN) {
       canopy_warn = 1;
+      Serial.println("Throttle is advanced, and Canopy is open; canopy_warn = 1");
+    } else {
+      canopy_warn = 0;
     }
-    if (LB_IS_EXTENDED) {
+    if (lbVal == LB_IS_EXTENDED) {
       brake_warn = 1;
+      Serial.println("Throttle is advanced, and Landing Brake is extended; brake_warn = 1");
+    } else {
+      brake_warn = 0;
     }
+  }
 
-  // Landing brake is down, without the landing gear down (landing config); issue a warning
-  if ((LB_IS_EXTENDED) && (GEAR_IS_RETRACTED)) {
-    alert =1;
+ // Landing brake is down, without the landing gear down (landing config); issue a warning
+  if ((throttleVal >= THROTTLE_ADVANCED) && (lbVal == LB_IS_EXTENDED) && (gearVal == GEAR_IS_RETRACTED)) {
+    alert = 1;
     brake_warn = 1;
+    Serial.println("Landing Brake is down with the Gear retracted");
+  } else {
+    if (gearVal == !GEAR_IS_RETRACTED)
+    gear_warn = 0;
   }
-  }
-
-
+  
+  //Serial.println(alert);
   return alert;
 }
 
@@ -163,12 +179,11 @@ int isAlertState(int gearVal, int canopyVal, int lbVal, int throttleVal, int low
 */
 void display(int gearVal, int canopyVal, int lbVal, int throttleVal, int silenceVal, int testVal, int lowvoltVal)
 {
-  // Set the alert state
-  alert = isAlertState(gearVal, canopyVal, lbVal, throttleVal, lowvoltVal);
-  
-  //int alert = 0;
 
-  //FastLED.clear();
+  Serial.println("Alert state ");
+  Serial.println(alert);
+
+  FastLED.clear();
   // gap is the cycle time for the tone. state is the tone state.
   static int gap = 0;
   static int state = LOW;
@@ -180,7 +195,7 @@ void display(int gearVal, int canopyVal, int lbVal, int throttleVal, int silence
   // logic is inverted. It goes HIGH when it's open,
   // and LOW when it's pressed.:
 
-  if (TEST_IS_PRESSED) {
+  if (testVal == TEST_IS_PRESSED) {
     //Serial.println("Test button pressed");
     digitalWrite(ALARM_OUT, HIGH);
     // MASTER (red)
@@ -209,63 +224,36 @@ void display(int gearVal, int canopyVal, int lbVal, int throttleVal, int silence
     Serial.println(adjbright);
     delay(1000);
   } else {
-    if ((GEAR_IS_RETRACTED) && (!alert)) { //HIGH means that the gear is retracted; LOW means that the gear is extended
-      leds[7] = CRGB::Black;
-      leds[6] = CRGB::Black;
-    } else { //LOW; Gear extended
-      Serial.println("Gear button pressed");
-      //leds[7] = CRGB::Green; //when gear is extended; display the typical GREEN led
-      //leds[6] = CRGB::Green;
-    }
-    if ((LB_IS_EXTENDED) && (!alert)) { //LOW means LB is extended; HIGH means that the LB is retracted
-      leds[5] = CRGB::Black;
-      leds[4] = CRGB::Black;
-    } else { //HIGH; Landing Brake retracted
-      Serial.println("Brake button pressed");
-      //leds[5] = CRGB::Green; //when LB is retracted; display the typical GREEN led
-      //leds[4] = CRGB::Green;
-    }
-     if ((CANOPY_IS_OPEN)  && (!alert)) { //HIGH means the canopy is open; LOW means the microswitches are pressed (canopy closed)
-      leds[3] = CRGB::Black;
-      leds[2] = CRGB::Black;
-    } else { //LOW; Canopy closed
-      Serial.println("Canopy button pressed");
-      //leds[3] = CRGB::Green; //when canopy is closed; display the typical GREEN led
-      //leds[2] = CRGB::Green;
-    }
-    if ((lowvoltVal == LOW) && (!alert)) {
-      leds[1] = CRGB::Black;
-      leds[0] = CRGB::Black;
-    } else {
-      //Serial.println("Low Volt is lit");
-      //leds[1] = CRGB::Yellow;
-      //leds[0] = CRGB::Yellow;
-    }
-    // The silence button is open normally. Logic is reversed.
-    if (silenceVal) {
-      silencedAt = now();
-    }
-
-    // output the master alarm status
     if (alert) {
       //Serial.println("Master Caution issued");
       leds[9] = CRGB::Red;
       leds[8] = CRGB::Red;
+      Serial.println("Alert State");
       if (gear_warn) {
         //Serial.println("Caution issued due to Gear warning");
         leds[7] = CRGB::Orange;
         leds[6] = CRGB::Orange;
+      } else {
+        leds[7] = CRGB::Black;
+        leds[6] = CRGB::Black;
       }
       if (brake_warn) {
         //Serial.println("Caution issued due to Brake warning");
         leds[5] = CRGB::Orange;
         leds[4] = CRGB::Orange;
+      } else {
+        leds[5] = CRGB::Black;
+        leds[4] = CRGB::Black;
       }
       if (canopy_warn) {
         //Serial.println("Caution issued due to Canopy warning");
         leds[3] = CRGB::Orange;
         leds[2] = CRGB::Orange;
+      } else {
+        leds[3] = CRGB::Black;
+        leds[2] = CRGB::Black;
       }
+      
       if (lowvolt_warn) {
         //Serial.println("Caution issued due to Low Volt warning");
         //leds[1] = CRGB::Yellow;
@@ -277,10 +265,34 @@ void display(int gearVal, int canopyVal, int lbVal, int throttleVal, int silence
         digitalWrite(ALARM_OUT, LOW);
       }
     } else {
+    if ((gearVal == GEAR_IS_RETRACTED) && (!alert)) { //HIGH means that the gear is retracted; LOW means that the gear is extended
+      leds[7] = CRGB::Black;
+      leds[6] = CRGB::Black;
+      //Serial.println("Gear is retracted");
+    }
+    if ((lbVal == LB_IS_EXTENDED) && (!alert)) { //LOW means LB is extended; HIGH means that the LB is retracted
+      leds[5] = CRGB::Black;
+      leds[4] = CRGB::Black;
+      //Serial.println("Landing Brake is extended");
+    }
+     if ((canopyVal == CANOPY_IS_OPEN)  && (!alert)) { //HIGH means the canopy is open; LOW means the microswitches are pressed (canopy closed)
+      leds[3] = CRGB::Black;
+      leds[2] = CRGB::Black;
+      //Serial.println("Canopy is open");
+    }
+    if ((lowvoltVal == LOW) && (!alert)) {
+      leds[1] = CRGB::Black;
+      leds[0] = CRGB::Black;
+    }
+    // The silence button is open normally. Logic is reversed.
+    if (silenceVal) {
+      silencedAt = now();
+    } else { // output the master alarm status
       leds[9] = CRGB::Black;
       leds[8] = CRGB::Black;
       digitalWrite(ALARM_OUT, LOW);
     }
+   } 
   }
   FastLED.show();
 }
