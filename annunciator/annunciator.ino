@@ -57,6 +57,10 @@ int canopy_warn = 0;
 int lowvolt_warn = 0;
 int adjbright;
 int alert = 0;
+// Set the switch positions (HIGH/LOW) for the gear, landing brake, and canopy
+int GEAR_IS_EXTENDED = HIGH;
+int LB_IS_EXTENDED = LOW;
+int CANOPY_IS_OPEN = HIGH;
 
 void setup() { //configure input pins as an input and enable the internal pull-up resistor
   FastLED.addLeds<NEOPIXEL, LED_PIN>(leds, NUM_LEDS);
@@ -125,23 +129,23 @@ int isAlertState(int gearVal, int canopyVal, int lbVal, int throttleVal, int low
   }
 
   // throttle closed, and landing gear up (switch closed value 1 is gear up HIGH; switch open value 0 LOW is gear down and safe!)
-  if ((throttleVal <= THROTTLE_CLOSED) && (gearVal==HIGH)) {
+  if ((throttleVal <= THROTTLE_CLOSED) && (GEAR_IS_EXTENDED)) {
     alert = 1;
     gear_warn = 1;
   }
 
   // throttle max and canopy not closed, and landing brake not up (switch open; value 0, switch closed is value 1, LB is fully closed)
-  if ((throttleVal >= THROTTLE_MAX) && (canopyVal==HIGH || lbVal==LOW)) {
+  if ((throttleVal >= THROTTLE_MAX) && (CANOPY_IS_OPEN || LB_IS_EXTENDED)) {
     alert = 1;
-    if (canopyVal==HIGH) {
+    if (CANOPY_IS_OPEN) {
       canopy_warn = 1;
     }
-    if (lbVal==LOW) {
+    if (LB_IS_EXTENDED) {
       brake_warn = 1;
     }
 
   // Landing brake is down, without the landing gear down (landing config); issue a warning
-  if ((lbVal==LOW) && (gearVal==HIGH)) {
+  if ((LB_IS_EXTENDED) && (GEAR_IS_EXTENDED)) {
     alert =1;
     brake_warn = 1;
   }
@@ -203,7 +207,7 @@ void display(int gearVal, int canopyVal, int lbVal, int throttleVal, int silence
     Serial.println(adjbright);
     delay(1000);
   } else {
-    if ((gearVal == HIGH) && (!alert)) { //HIGH means that the gear is extended; LOW means that the gear is retracted
+    if ((GEAR_IS_EXTENDED) && (!alert)) { //HIGH means that the gear is extended; LOW means that the gear is retracted
       leds[7] = CRGB::Black;
       leds[6] = CRGB::Black;
     } else { //LOW; Gear retracted
@@ -211,7 +215,7 @@ void display(int gearVal, int canopyVal, int lbVal, int throttleVal, int silence
       //leds[7] = CRGB::Green; //when gear is extended; display the typical GREEN led
       //leds[6] = CRGB::Green;
     }
-    if ((lbVal == LOW) && (!alert)) { //LOW means LB is extended; HIGH means that the LB is retracted
+    if ((LB_IS_EXTENDED) && (!alert)) { //LOW means LB is extended; HIGH means that the LB is retracted
       leds[5] = CRGB::Black;
       leds[4] = CRGB::Black;
     } else { //HIGH; Landing Brake retracted
@@ -219,7 +223,7 @@ void display(int gearVal, int canopyVal, int lbVal, int throttleVal, int silence
       //leds[5] = CRGB::Green; //when LB is retracted; display the typical GREEN led
       //leds[4] = CRGB::Green;
     }
-     if ((canopyVal == HIGH)  && (!alert)) { //HIGH means the canopy is open; LOW means the microswitches are pressed (canopy closed)
+     if ((CANOPY_IS_OPEN)  && (!alert)) { //HIGH means the canopy is open; LOW means the microswitches are pressed (canopy closed)
       leds[3] = CRGB::Black;
       leds[2] = CRGB::Black;
     } else { //LOW; Canopy closed
