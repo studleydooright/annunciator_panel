@@ -48,7 +48,7 @@ int ALARM_OUT = 9;
 // Arduino Analog to Digital conv range 0 - 1023
 
 int THROTTLE_IN = 1; // analog pin 0
-int THROTTLE_LOW = 200; // fast idle (N40EB needs 150)
+int THROTTLE_LOW = 150; // fast idle (N40EB needs 150)
 int THROTTLE_ADVANCED = 350; // takeoff power (N40EB needs 350)
 
 int gear_warn = 0;
