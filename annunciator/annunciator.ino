@@ -48,7 +48,7 @@ int ALARM_OUT = 9;
 // Arduino Analog to Digital conv range 0 - 1023
 
 int THROTTLE_IN = 1; // analog pin 0
-int THROTTLE_LOW = 150; // fast idle (N40EB needs 150)
+int THROTTLE_LOW = 200; // fast idle (N40EB needs 150)
 int THROTTLE_ADVANCED = 350; // takeoff power (N40EB needs 350)
 
 int gear_warn = 0;
@@ -168,19 +168,20 @@ int isAlertState(int gearVal, int canopyVal, int lbVal, int throttleAverage, int
   if (lowvoltVal) {
     //alert = 1;
     //lowvolt_warn = 1;
+  } else {
+    lowvolt_warn = 0;
+    alert = 0;
   }
-
-  // throttle closed, and landing gear up (switch closed value 1 is gear up HIGH; switch open value 0 LOW is gear down and safe!)
-  if ((throttleAverage <= THROTTLE_LOW) && (gearVal == GEAR_IS_RETRACTED)) {
+  if ((throttleAverage <= THROTTLE_LOW) && (gearVal == GEAR_IS_RETRACTED)) {   // throttle closed, and landing gear up (switch closed value 1 is gear up HIGH; switch open value 0 LOW is gear down and safe!)
     alert = 1;
     gear_warn = 1;
     Serial.println("Throttle is closed, gear retracted; gear_warn = 1");
   } else {
+    gear_warn = 0;
     alert = 0;
   }
-
-  // throttle max and canopy not closed, and/or landing brake not up (switch open; value 0, switch closed is value 1, LB is fully closed)
-  if ((throttleAverage >= THROTTLE_ADVANCED) && ((canopyVal == CANOPY_IS_OPEN) || (lbVal == LB_IS_EXTENDED))) {
+  
+  if ((throttleAverage >= THROTTLE_ADVANCED) && ((canopyVal == CANOPY_IS_OPEN) || (lbVal == LB_IS_EXTENDED))) {   // throttle max and canopy not closed, and/or landing brake not up (switch open; value 0, switch closed is value 1, LB is fully closed)
     alert = 1;
     if (canopyVal == CANOPY_IS_OPEN) {
       canopy_warn = 1;
@@ -194,6 +195,8 @@ int isAlertState(int gearVal, int canopyVal, int lbVal, int throttleAverage, int
     } else {
       brake_warn = 0;
     }
+  } else {
+    alert = 0;
   }
 
 /*
@@ -202,9 +205,9 @@ int isAlertState(int gearVal, int canopyVal, int lbVal, int throttleAverage, int
     alert = 1;
     brake_warn = 1;
     Serial.println("Landing Brake is down with the Gear retracted");
-  } else {
-    if (gearVal == !GEAR_IS_RETRACTED)
+  } else if (gearVal == !GEAR_IS_RETRACTED) {
     gear_warn = 0;
+    }
   }
   */
   
@@ -219,8 +222,8 @@ int isAlertState(int gearVal, int canopyVal, int lbVal, int throttleAverage, int
 void display(int gearVal, int canopyVal, int lbVal, int throttleAverage, int silenceVal, int testVal, int lowvoltVal)
 {
 
-  Serial.println("Alert state ");
-  Serial.println(alert);
+  //Serial.println("Alert state ");
+  //Serial.println(alert);
 
   FastLED.clear();
   // gap is the cycle time for the tone. state is the tone state.
@@ -292,11 +295,13 @@ void display(int gearVal, int canopyVal, int lbVal, int throttleAverage, int sil
         leds[3] = CRGB::Black;
         leds[2] = CRGB::Black;
       }
-      
       if (lowvolt_warn) {
         //Serial.println("Caution issued due to Low Volt warning");
         //leds[1] = CRGB::Yellow;
         //leds[0] = CRGB::Yellow;
+      } else {
+         leds[1] = CRGB::Black;
+         leds[0] = CRGB::Black;
       }
       if (now() > silencedAt + 60) {
         digitalWrite(ALARM_OUT, HIGH);
@@ -304,22 +309,22 @@ void display(int gearVal, int canopyVal, int lbVal, int throttleAverage, int sil
         digitalWrite(ALARM_OUT, LOW);
       }
     } else {
-    if ((gearVal == GEAR_IS_RETRACTED) && (!alert)) { //HIGH means that the gear is retracted; LOW means that the gear is extended
+    if (gearVal == GEAR_IS_RETRACTED) { //HIGH means that the gear is retracted; LOW means that the gear is extended
       leds[7] = CRGB::Black;
       leds[6] = CRGB::Black;
       //Serial.println("Gear is retracted");
     }
-    if ((lbVal == LB_IS_EXTENDED) && (!alert)) { //LOW means LB is extended; HIGH means that the LB is retracted
+    if (lbVal == LB_IS_EXTENDED) { //LOW means LB is extended; HIGH means that the LB is retracted
       leds[5] = CRGB::Black;
       leds[4] = CRGB::Black;
       //Serial.println("Landing Brake is extended");
     }
-     if ((canopyVal == CANOPY_IS_OPEN)  && (!alert)) { //HIGH means the canopy is open; LOW means the microswitches are pressed (canopy closed)
+     if (canopyVal == CANOPY_IS_OPEN) { //HIGH means the canopy is open; LOW means the microswitches are pressed (canopy closed)
       leds[3] = CRGB::Black;
       leds[2] = CRGB::Black;
       //Serial.println("Canopy is open");
     }
-    if ((lowvoltVal == LOW) && (!alert)) {
+    if (lowvoltVal == LOW) {
       leds[1] = CRGB::Black;
       leds[0] = CRGB::Black;
     }
