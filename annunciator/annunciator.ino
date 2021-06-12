@@ -68,7 +68,7 @@ int TEST_IS_PRESSED = LOW;
 // more the readings will be smoothed, but the slower the output will respond to
 // the input. Using a constant rather than a normal variable lets us use this
 // value to determine the size of the readings array.
-const int numReadings = 20;
+const int numReadings = 50;
 
 int readings[numReadings];      // the readings from the analog input
 int readIndex = 0;              // the index of the current reading
@@ -141,7 +141,7 @@ void loop() {
   // calculate the throttleAverage:
   throttleAverage = total / numReadings;
   // send it to the computer as ASCII digits
-  Serial.println(throttleAverage);
+  //Serial.println(throttleAverage);
   delay(1);        // delay in between reads for stability
 
   // Set the alert state
