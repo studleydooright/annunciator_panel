@@ -174,38 +174,33 @@ int isAlertState(int gearVal, int canopyVal, int lbVal, int throttleAverage, int
   }
 
 
-  if ((throttleAverage >= THROTTLE_ADVANCED) && ((canopyVal == CANOPY_IS_OPEN) || (lbVal == LB_IS_EXTENDED))) {   // throttle max and canopy not closed, and/or landing brake not up (switch open; value 0, switch closed is value 1, LB is fully closed)
+  if ((throttleAverage >= THROTTLE_ADVANCED) && (canopyVal == CANOPY_IS_OPEN)) {
     alert = 1;
-    if (canopyVal == CANOPY_IS_OPEN) {
-      canopy_warn = 1;
-      Serial.println("Throttle is advanced, and Canopy is open; canopy_warn = 1");
-    }
-    if (lbVal == LB_IS_EXTENDED) {
-      brake_warn = 1;
-      Serial.println("Throttle is advanced, and Landing Brake is extended; brake_warn = 1");
-    }
-  } else if ((throttleAverage <= THROTTLE_LOW) && (gearVal == GEAR_IS_RETRACTED)) {   // throttle closed, and landing gear up (switch closed value 1 is gear up HIGH; switch open value 0 LOW is gear down and safe!)
+    canopy_warn = 1;
+    Serial.println("Throttle is advanced, and Canopy is open; canopy_warn = 1");
+  } 
+  else if ((throttleAverage >= THROTTLE_ADVANCED) && (lbVal == LB_IS_EXTENDED)) {
+    alert = 1;
+    brake_warn = 1;
+    Serial.println("Throttle is advanced, and Landing Brake is extended; brake_warn = 1");
+  } 
+  else if ((throttleAverage >= THROTTLE_ADVANCED) && ((lbVal == LB_IS_EXTENDED) && (canopyVal == CANOPY_IS_OPEN))) {
+    alert = 1;
+    brake_warn = 1;
+    canopy_warn = 1;
+    Serial.println("Throttle is advanced, and Landing Brake is extended; brake_warn = 1 AND Canopy is open; canopy_warn = 1");
+  } 
+  else if ((throttleAverage <= THROTTLE_LOW) && (gearVal == GEAR_IS_RETRACTED)) {
     alert = 1;
     gear_warn = 1;
     Serial.println("Throttle is closed, gear retracted; gear_warn = 1");
-  } else {
+  } 
+  else {
     canopy_warn = 0;
     brake_warn = 0;
     gear_warn = 0;
     alert = 0;
   }
-
-  /*
-    // Landing brake is extended, without the landing gear extended (landing config); issue a warning
-    if ((throttleAverage >= THROTTLE_ADVANCED) && (lbVal == LB_IS_EXTENDED) && (gearVal == GEAR_IS_RETRACTED)) {
-      alert = 1;
-      brake_warn = 1;
-      Serial.println("Landing Brake is down with the Gear retracted");
-    } else if (gearVal == !GEAR_IS_RETRACTED) {
-      gear_warn = 0;
-      }
-    }
-  */
 
   Serial.println(alert);
   return alert;
