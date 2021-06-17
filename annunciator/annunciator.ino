@@ -48,7 +48,7 @@ int ALARM_OUT = 9;
 // Arduino Analog to Digital conv range 0 - 1023
 
 int THROTTLE_IN = 1; // analog pin 0
-int THROTTLE_LOW = 150; // fast idle (N40EB needs 150)
+int THROTTLE_LOW = 200; // fast idle (N40EB needs 150)
 int THROTTLE_ADVANCED = 350; // takeoff power (N40EB needs 350)
 
 int gear_warn = 0;
@@ -146,7 +146,7 @@ void loop() {
 
   // Set the alert state
   alert = isAlertState(gearVal, canopyVal, lbVal, throttleAverage, lowvoltVal);
-  
+
   display(gearVal, canopyVal, lbVal, throttleAverage, silenceVal, testVal, lowvoltVal);
   // write the voltage value to the serial monitor:
   //Serial.println(voltage);
@@ -155,7 +155,7 @@ void loop() {
   //Serial.println(gearVal);
   //Serial.println(lbVal);
   //Serial.println(canopyVal);
- 
+
 }
 
 /* * check the logic to see if there is a master warning to display
@@ -170,48 +170,44 @@ int isAlertState(int gearVal, int canopyVal, int lbVal, int throttleAverage, int
     //lowvolt_warn = 1;
   } else {
     lowvolt_warn = 0;
-    alert = 0;
+    //alert = 0;
   }
-  if ((throttleAverage <= THROTTLE_LOW) && (gearVal == GEAR_IS_RETRACTED)) {   // throttle closed, and landing gear up (switch closed value 1 is gear up HIGH; switch open value 0 LOW is gear down and safe!)
-    alert = 1;
-    gear_warn = 1;
-    Serial.println("Throttle is closed, gear retracted; gear_warn = 1");
-  } else {
-    gear_warn = 0;
-    alert = 0;
-  }
-  
+
+
   if ((throttleAverage >= THROTTLE_ADVANCED) && ((canopyVal == CANOPY_IS_OPEN) || (lbVal == LB_IS_EXTENDED))) {   // throttle max and canopy not closed, and/or landing brake not up (switch open; value 0, switch closed is value 1, LB is fully closed)
     alert = 1;
     if (canopyVal == CANOPY_IS_OPEN) {
       canopy_warn = 1;
       Serial.println("Throttle is advanced, and Canopy is open; canopy_warn = 1");
-    } else {
-      canopy_warn = 0;
     }
     if (lbVal == LB_IS_EXTENDED) {
       brake_warn = 1;
       Serial.println("Throttle is advanced, and Landing Brake is extended; brake_warn = 1");
-    } else {
-      brake_warn = 0;
     }
+  } else if ((throttleAverage <= THROTTLE_LOW) && (gearVal == GEAR_IS_RETRACTED)) {   // throttle closed, and landing gear up (switch closed value 1 is gear up HIGH; switch open value 0 LOW is gear down and safe!)
+    alert = 1;
+    gear_warn = 1;
+    Serial.println("Throttle is closed, gear retracted; gear_warn = 1");
   } else {
+    canopy_warn = 0;
+    brake_warn = 0;
+    gear_warn = 0;
     alert = 0;
   }
 
-/*
- // Landing brake is extended, without the landing gear extended (landing config); issue a warning
-  if ((throttleAverage >= THROTTLE_ADVANCED) && (lbVal == LB_IS_EXTENDED) && (gearVal == GEAR_IS_RETRACTED)) {
-    alert = 1;
-    brake_warn = 1;
-    Serial.println("Landing Brake is down with the Gear retracted");
-  } else if (gearVal == !GEAR_IS_RETRACTED) {
-    gear_warn = 0;
+  /*
+    // Landing brake is extended, without the landing gear extended (landing config); issue a warning
+    if ((throttleAverage >= THROTTLE_ADVANCED) && (lbVal == LB_IS_EXTENDED) && (gearVal == GEAR_IS_RETRACTED)) {
+      alert = 1;
+      brake_warn = 1;
+      Serial.println("Landing Brake is down with the Gear retracted");
+    } else if (gearVal == !GEAR_IS_RETRACTED) {
+      gear_warn = 0;
+      }
     }
-  }
   */
-  
-  //Serial.println(alert);
+
+  Serial.println(alert);
   return alert;
 }
 
@@ -300,8 +296,8 @@ void display(int gearVal, int canopyVal, int lbVal, int throttleAverage, int sil
         //leds[1] = CRGB::Yellow;
         //leds[0] = CRGB::Yellow;
       } else {
-         leds[1] = CRGB::Black;
-         leds[0] = CRGB::Black;
+        leds[1] = CRGB::Black;
+        leds[0] = CRGB::Black;
       }
       if (now() > silencedAt + 60) {
         digitalWrite(ALARM_OUT, HIGH);
@@ -309,34 +305,34 @@ void display(int gearVal, int canopyVal, int lbVal, int throttleAverage, int sil
         digitalWrite(ALARM_OUT, LOW);
       }
     } else {
-    if (gearVal == GEAR_IS_RETRACTED) { //HIGH means that the gear is retracted; LOW means that the gear is extended
-      leds[7] = CRGB::Black;
-      leds[6] = CRGB::Black;
-      //Serial.println("Gear is retracted");
+      if (gearVal == GEAR_IS_RETRACTED) { //HIGH means that the gear is retracted; LOW means that the gear is extended
+        leds[7] = CRGB::Black;
+        leds[6] = CRGB::Black;
+        //Serial.println("Gear is retracted");
+      }
+      if (lbVal == LB_IS_EXTENDED) { //LOW means LB is extended; HIGH means that the LB is retracted
+        leds[5] = CRGB::Black;
+        leds[4] = CRGB::Black;
+        //Serial.println("Landing Brake is extended");
+      }
+      if (canopyVal == CANOPY_IS_OPEN) { //HIGH means the canopy is open; LOW means the microswitches are pressed (canopy closed)
+        leds[3] = CRGB::Black;
+        leds[2] = CRGB::Black;
+        //Serial.println("Canopy is open");
+      }
+      if (lowvoltVal == LOW) {
+        leds[1] = CRGB::Black;
+        leds[0] = CRGB::Black;
+      }
+      // The silence button is open normally. Logic is reversed.
+      if (silenceVal) {
+        silencedAt = now();
+      } else { // output the master alarm status
+        leds[9] = CRGB::Black;
+        leds[8] = CRGB::Black;
+        digitalWrite(ALARM_OUT, LOW);
+      }
     }
-    if (lbVal == LB_IS_EXTENDED) { //LOW means LB is extended; HIGH means that the LB is retracted
-      leds[5] = CRGB::Black;
-      leds[4] = CRGB::Black;
-      //Serial.println("Landing Brake is extended");
-    }
-     if (canopyVal == CANOPY_IS_OPEN) { //HIGH means the canopy is open; LOW means the microswitches are pressed (canopy closed)
-      leds[3] = CRGB::Black;
-      leds[2] = CRGB::Black;
-      //Serial.println("Canopy is open");
-    }
-    if (lowvoltVal == LOW) {
-      leds[1] = CRGB::Black;
-      leds[0] = CRGB::Black;
-    }
-    // The silence button is open normally. Logic is reversed.
-    if (silenceVal) {
-      silencedAt = now();
-    } else { // output the master alarm status
-      leds[9] = CRGB::Black;
-      leds[8] = CRGB::Black;
-      digitalWrite(ALARM_OUT, LOW);
-    }
-   } 
   }
   FastLED.show();
 }
