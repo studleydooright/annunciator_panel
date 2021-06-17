@@ -161,43 +161,37 @@ void loop() {
 */
 int isAlertState(int gearVal, int canopyVal, int lbVal, int throttleAverage, int lowvoltVal)
 {
+alert = 0;
+canopy_warn = 0;
+brake_warn = 0;
+gear_warn = 0;
+lowvolt_warn = 0;
 
   // low volt check
   if (lowvoltVal) {
     //alert = 1;
     //lowvolt_warn = 1;
-  } else {
-    lowvolt_warn = 0;
-    //alert = 0;
   }
-
-
   if ((throttleAverage >= THROTTLE_ADVANCED) && (canopyVal == CANOPY_IS_OPEN)) {
     alert = 1;
     canopy_warn = 1;
     Serial.println("Throttle is advanced, and Canopy is open; canopy_warn = 1");
-  } 
-  else if ((throttleAverage >= THROTTLE_ADVANCED) && (lbVal == LB_IS_EXTENDED)) {
+  }  
+  if ((throttleAverage >= THROTTLE_ADVANCED) && (lbVal == LB_IS_EXTENDED)) {
     alert = 1;
     brake_warn = 1;
     Serial.println("Throttle is advanced, and Landing Brake is extended; brake_warn = 1");
-  } 
-  else if ((throttleAverage >= THROTTLE_ADVANCED) && (lbVal == LB_IS_EXTENDED) && (canopyVal == CANOPY_IS_OPEN)) {
+  }  
+  if ((throttleAverage >= THROTTLE_ADVANCED) && (lbVal == LB_IS_EXTENDED) && (canopyVal == CANOPY_IS_OPEN)) {
     alert = 1;
     brake_warn = 1;
     canopy_warn = 1;
     Serial.println("Throttle is advanced, and Landing Brake is extended; brake_warn = 1 AND Canopy is open; canopy_warn = 1");
-  } 
-  else if ((throttleAverage <= THROTTLE_LOW) && (gearVal == GEAR_IS_RETRACTED)) {
+  }  
+  if ((throttleAverage <= THROTTLE_LOW) && (gearVal == GEAR_IS_RETRACTED)) {
     alert = 1;
     gear_warn = 1;
     Serial.println("Throttle is closed, gear retracted; gear_warn = 1");
-  } 
-  else {
-    canopy_warn = 0;
-    brake_warn = 0;
-    gear_warn = 0;
-    alert = 0;
   }
 
   Serial.println(alert);
