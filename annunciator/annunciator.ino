@@ -48,7 +48,7 @@ int ALARM_OUT = 9;
 // Arduino Analog to Digital conv range 0 - 1023
 
 int THROTTLE_IN = 1; // analog pin 0
-int THROTTLE_LOW = 200; // fast idle (N40EB needs 150)
+int THROTTLE_LOW = 200; // fast idle (N40EB needs 200)
 int THROTTLE_ADVANCED = 350; // takeoff power (N40EB needs 350)
 
 int gear_warn = 0;
@@ -62,13 +62,13 @@ int alert = 0;
 int GEAR_IS_RETRACTED = HIGH; //N40EB needs HIGH
 int LB_IS_EXTENDED = LOW; //N40EB needs LOW
 int CANOPY_IS_OPEN = HIGH; //N40EB needs HIGH
-int TEST_IS_PRESSED = LOW;
+int TEST_IS_PRESSED = LOW; //N40EB needs LOW
 
 // Define the number of throttle samples to keep track of. The higher the number, the
 // more the readings will be smoothed, but the slower the output will respond to
 // the input. Using a constant rather than a normal variable lets us use this
 // value to determine the size of the readings array.
-const int numReadings = 50;
+const int numReadings = 10;
 
 int readings[numReadings];      // the readings from the analog input
 int readIndex = 0;              // the index of the current reading
@@ -147,14 +147,12 @@ void loop() {
   // Set the alert state
   alert = isAlertState(gearVal, canopyVal, lbVal, throttleAverage, lowvoltVal);
 
+  // Call the display function after reading the alert state
   display(gearVal, canopyVal, lbVal, throttleAverage, silenceVal, testVal, lowvoltVal);
+
   // write the voltage value to the serial monitor:
   //Serial.println(voltage);
   Serial.println(throttleAverage);
-  //Serial.println(lowvoltVal);
-  //Serial.println(gearVal);
-  //Serial.println(lbVal);
-  //Serial.println(canopyVal);
 
 }
 
@@ -184,7 +182,7 @@ int isAlertState(int gearVal, int canopyVal, int lbVal, int throttleAverage, int
     brake_warn = 1;
     Serial.println("Throttle is advanced, and Landing Brake is extended; brake_warn = 1");
   } 
-  else if ((throttleAverage >= THROTTLE_ADVANCED) && ((lbVal == LB_IS_EXTENDED) && (canopyVal == CANOPY_IS_OPEN))) {
+  else if ((throttleAverage >= THROTTLE_ADVANCED) && (lbVal == LB_IS_EXTENDED) && (canopyVal == CANOPY_IS_OPEN)) {
     alert = 1;
     brake_warn = 1;
     canopy_warn = 1;
