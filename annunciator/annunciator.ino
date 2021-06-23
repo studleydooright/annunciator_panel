@@ -48,7 +48,7 @@ int ALARM_OUT = 9;
 // Arduino Analog to Digital conv range 0 - 1023
 
 int THROTTLE_IN = 1; // analog pin 0
-int THROTTLE_LOW = 220; // fast idle (N40EB needs 200)
+int THROTTLE_LOW = 250; // fast idle (N40EB needs 200)
 int THROTTLE_ADVANCED = 350; // takeoff power (N40EB needs 350)
 
 int gear_warn = 0;
@@ -68,7 +68,7 @@ int TEST_IS_PRESSED = LOW; //N40EB needs LOW
 // more the readings will be smoothed, but the slower the output will respond to
 // the input. Using a constant rather than a normal variable lets us use this
 // value to determine the size of the readings array.
-const int numReadings = 20;
+const int numReadings = 30;
 
 int readings[numReadings];      // the readings from the analog input
 int readIndex = 0;              // the index of the current reading
