@@ -68,7 +68,7 @@ int TEST_IS_PRESSED = LOW; //N40EB needs LOW
 // more the readings will be smoothed, but the slower the output will respond to
 // the input. Using a constant rather than a normal variable lets us use this
 // value to determine the size of the readings array.
-const int numReadings = 40;
+const int numReadings = 50;
 
 int readings[numReadings];      // the readings from the analog input
 int readIndex = 0;              // the index of the current reading
