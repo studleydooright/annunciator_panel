@@ -32,6 +32,8 @@ int CANOPY_SW = 4;
 int TEST_SW = 5;
 int LB_SW = 10;
 int LOWVOLT_SW = 11;
+int IGN1_SW = 12; //DSUB pin 17
+int IGN2_SW = 13; //DSUB pin 16
 
 //Silence pushbutton. Once button released, alarm is silenced for 5 seconds.
 int SILENCE_SW = 6;
@@ -63,6 +65,8 @@ int GEAR_IS_RETRACTED = HIGH; //N40EB needs HIGH
 int LB_IS_EXTENDED = LOW; //N40EB needs LOW
 int CANOPY_IS_OPEN = HIGH; //N40EB needs HIGH
 int TEST_IS_PRESSED = LOW; //N40EB needs LOW
+int IGN1_IS_OFF = HIGH; // LED is ON when Ignition is off
+int IGN2_IS_OFF = HIGH; // LED is ON when Ignition is off
 
 // Define the number of throttle samples to keep track of. The higher the number, the
 // more the readings will be smoothed, but the slower the output will respond to
@@ -85,7 +89,8 @@ void setup() { //configure input pins as an input and enable the internal pull-u
   pinMode(TEST_SW, INPUT_PULLUP);
   pinMode(LOWVOLT_SW, INPUT_PULLUP);
   pinMode(THROTTLE_IN, INPUT);
-
+  pinMode(IGN1_SW, INPUT);
+  pinMode(IGN2_SW, INPUT);
   // configure output pins for output.
 
   Serial.begin(9600);
@@ -121,6 +126,8 @@ void loop() {
   int lowvoltVal = digitalRead(LOWVOLT_SW);
   int throttleVal = analogRead(THROTTLE_IN);
   //int throttleVal = digitalRead(THROTTLE_SW);
+  int ign1Val = digitalRead(IGN1_SW);
+  int ign2Val = digitalRead(IGN2_SW);
   float voltage = throttleVal * (5.0 / 1023.0);
 
   // subtract the last reading of the throttle to average it out:
@@ -148,7 +155,7 @@ void loop() {
   alert = isAlertState(gearVal, canopyVal, lbVal, throttleAverage, lowvoltVal);
 
   // Call the display function after reading the alert state
-  display(gearVal, canopyVal, lbVal, throttleAverage, silenceVal, testVal, lowvoltVal);
+  display(gearVal, canopyVal, lbVal, throttleAverage, silenceVal, testVal, lowvoltVal, ign1Val, ign2Val);
 
   // write the voltage value to the serial monitor:
   //Serial.println(voltage);
@@ -202,7 +209,7 @@ lowvolt_warn = 0;
   proper state, and handle master alarm state,
   including sound.
 */
-void display(int gearVal, int canopyVal, int lbVal, int throttleAverage, int silenceVal, int testVal, int lowvoltVal)
+void display(int gearVal, int canopyVal, int lbVal, int throttleAverage, int silenceVal, int testVal, int lowvoltVal, int ign1Val, int ign2Val)
 {
 
   //Serial.println("Alert state ");
@@ -285,6 +292,12 @@ void display(int gearVal, int canopyVal, int lbVal, int throttleAverage, int sil
       } else {
         leds[1] = CRGB::Black;
         leds[0] = CRGB::Black;
+      }
+      if (ign1Val == IGN1_IS_OFF) {
+        leds[0] = CRGB::Blue;
+      }
+      if (ign2Val == IGN2_IS_OFF) {
+        leds[1] = CRGB::Blue;
       }
       if (now() > silencedAt + 60) {
         digitalWrite(ALARM_OUT, HIGH);
