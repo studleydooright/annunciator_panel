@@ -32,8 +32,8 @@ int CANOPY_SW = 4;
 int TEST_SW = 5;
 int LB_SW = 10;
 int LOWVOLT_SW = 11;
-int IGN1_SW = 12; //DSUB pin 17
-int IGN2_SW = 13; //DSUB pin 16
+int IGN1_SW = 23; //12; //DSUB pin 17
+int IGN2_SW = 22; //13; //DSUB pin 16
 
 //Silence pushbutton. Once button released, alarm is silenced for 5 seconds.
 int SILENCE_SW = 6;
@@ -65,8 +65,8 @@ int GEAR_IS_RETRACTED = HIGH; //N40EB needs HIGH
 int LB_IS_EXTENDED = LOW; //N40EB needs LOW
 int CANOPY_IS_OPEN = HIGH; //N40EB needs HIGH
 int TEST_IS_PRESSED = LOW; //N40EB needs LOW
-int IGN1_IS_OFF = HIGH; // LED is ON when Ignition is off
-int IGN2_IS_OFF = HIGH; // LED is ON when Ignition is off
+int IGN1_IS_ON = LOW; // LED is ON when Ignition is off
+int IGN2_IS_ON = LOW; // LED is ON when Ignition is off
 
 // Define the number of throttle samples to keep track of. The higher the number, the
 // more the readings will be smoothed, but the slower the output will respond to
@@ -159,7 +159,9 @@ void loop() {
 
   // write the voltage value to the serial monitor:
   //Serial.println(voltage);
-  Serial.println(throttleAverage);
+  //Serial.println(throttleAverage);
+  //Serial.println(ign1Val);
+  Serial.println(ign2Val);
 
 }
 
@@ -182,23 +184,23 @@ lowvolt_warn = 0;
   if ((throttleAverage >= THROTTLE_ADVANCED) && (canopyVal == CANOPY_IS_OPEN)) {
     alert = 1;
     canopy_warn = 1;
-    Serial.println("Throttle is advanced, and Canopy is open; canopy_warn = 1");
+    //Serial.println("Throttle is advanced, and Canopy is open; canopy_warn = 1");
   }  
   if ((throttleAverage >= THROTTLE_ADVANCED) && (lbVal == LB_IS_EXTENDED)) {
     alert = 1;
     brake_warn = 1;
-    Serial.println("Throttle is advanced, and Landing Brake is extended; brake_warn = 1");
+    //Serial.println("Throttle is advanced, and Landing Brake is extended; brake_warn = 1");
   }  
   if ((throttleAverage >= THROTTLE_ADVANCED) && (lbVal == LB_IS_EXTENDED) && (canopyVal == CANOPY_IS_OPEN)) {
     alert = 1;
     brake_warn = 1;
     canopy_warn = 1;
-    Serial.println("Throttle is advanced, and Landing Brake is extended; brake_warn = 1 AND Canopy is open; canopy_warn = 1");
+    //Serial.println("Throttle is advanced, and Landing Brake is extended; brake_warn = 1 AND Canopy is open; canopy_warn = 1");
   }  
   if ((throttleAverage <= THROTTLE_LOW) && (gearVal == GEAR_IS_RETRACTED)) {
     alert = 1;
     gear_warn = 1;
-    Serial.println("Throttle is closed, gear retracted; gear_warn = 1");
+    //Serial.println("Throttle is closed, gear retracted; gear_warn = 1");
   }
 
   Serial.println(alert);
@@ -260,7 +262,7 @@ void display(int gearVal, int canopyVal, int lbVal, int throttleAverage, int sil
       //Serial.println("Master Caution issued");
       leds[9] = CRGB::Red;
       leds[8] = CRGB::Red;
-      Serial.println("Alert State");
+      //Serial.println("Alert State");
       if (gear_warn) {
         //Serial.println("Caution issued due to Gear warning");
         leds[7] = CRGB::Orange;
@@ -293,10 +295,10 @@ void display(int gearVal, int canopyVal, int lbVal, int throttleAverage, int sil
         leds[1] = CRGB::Black;
         leds[0] = CRGB::Black;
       }
-      if (ign1Val == IGN1_IS_OFF) {
+      if (ign1Val == IGN1_IS_ON) {
         leds[0] = CRGB::Blue;
       }
-      if (ign2Val == IGN2_IS_OFF) {
+      if (ign2Val == IGN2_IS_ON) {
         leds[1] = CRGB::Blue;
       }
       if (now() > silencedAt + 60) {
