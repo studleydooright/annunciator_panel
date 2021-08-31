@@ -32,8 +32,8 @@ int CANOPY_SW = 4;
 int TEST_SW = 5;
 int LB_SW = 10;
 int LOWVOLT_SW = 11;
-int IGN1_SW = 23; //12; //DSUB pin 17
-int IGN2_SW = 22; //13; //DSUB pin 16
+int IGN1_SW = 23; //Now analog 5 was digital 12; //DSUB pin 8
+int IGN2_SW = 22; //Now analog 4 was digital 13; //DSUB pin 9
 
 //Silence pushbutton. Once button released, alarm is silenced for 5 seconds.
 int SILENCE_SW = 6;
@@ -65,8 +65,8 @@ int GEAR_IS_RETRACTED = HIGH; //N40EB needs HIGH
 int LB_IS_EXTENDED = LOW; //N40EB needs LOW
 int CANOPY_IS_OPEN = HIGH; //N40EB needs HIGH
 int TEST_IS_PRESSED = LOW; //N40EB needs LOW
-int IGN1_IS_ON = LOW; // LED is ON when Ignition is off
-int IGN2_IS_ON = LOW; // LED is ON when Ignition is off
+int IGN1_IS_OFF = HIGH; // LED is ON when Ignition is off (HIGH; do we need pull-down resistors?)
+int IGN2_IS_OFF = HIGH; // LED is ON when Ignition is off (HIGH)
 
 // Define the number of throttle samples to keep track of. The higher the number, the
 // more the readings will be smoothed, but the slower the output will respond to
@@ -295,11 +295,21 @@ void display(int gearVal, int canopyVal, int lbVal, int throttleAverage, int sil
         leds[1] = CRGB::Black;
         leds[0] = CRGB::Black;
       }
-      if (ign1Val == IGN1_IS_ON) {
+      if ((ign1Val == IGN1_IS_OFF) && (ign2Val != IGN2_IS_OFF)) {
         leds[0] = CRGB::Blue;
+        leds[1] = CRGB::Black;
       }
-      if (ign2Val == IGN2_IS_ON) {
+      if ((ign1Val != IGN1_IS_OFF) && (ign2Val == IGN2_IS_OFF)) {
+        leds[0] = CRGB::Black;
         leds[1] = CRGB::Blue;
+      }
+      if ((ign1Val == IGN1_IS_OFF) && (ign2Val == IGN2_IS_OFF)) {
+        leds[0] = CRGB::Black;
+        leds[1] = CRGB::Black;
+      }
+      if ((ign1Val != IGN1_IS_OFF) && (ign2Val != IGN2_IS_OFF)) {
+        leds[0] = CRGB::Black;
+        leds[1] = CRGB::Black;
       }
       if (now() > silencedAt + 60) {
         digitalWrite(ALARM_OUT, HIGH);
@@ -325,6 +335,22 @@ void display(int gearVal, int canopyVal, int lbVal, int throttleAverage, int sil
       if (lowvoltVal == LOW) {
         leds[1] = CRGB::Black;
         leds[0] = CRGB::Black;
+      }
+      if ((ign1Val == IGN1_IS_OFF) && (ign2Val != IGN2_IS_OFF)) {
+        leds[0] = CRGB::Blue;
+        leds[1] = CRGB::Black;
+      }
+      if ((ign1Val != IGN1_IS_OFF) && (ign2Val == IGN2_IS_OFF)) {
+        leds[0] = CRGB::Black;
+        leds[1] = CRGB::Blue;
+      }
+      if ((ign1Val == IGN1_IS_OFF) && (ign2Val == IGN2_IS_OFF)) {
+        leds[0] = CRGB::Black;
+        leds[1] = CRGB::Black;
+      }
+      if ((ign1Val != IGN1_IS_OFF) && (ign2Val != IGN2_IS_OFF)) {
+        leds[0] = CRGB::Black;
+        leds[1] = CRGB::Black;
       }
       // The silence button is open normally. Logic is reversed.
       if (silenceVal) {
