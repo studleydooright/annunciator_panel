@@ -32,8 +32,8 @@ int CANOPY_SW = 4;
 int TEST_SW = 5;
 int LB_SW = 10;
 int LOWVOLT_SW = 11;
-int IGN1_SW = 23; //Now analog 5 was digital 12; //DSUB pin 8
-int IGN2_SW = 22; //Now analog 4 was digital 13; //DSUB pin 9
+int IGN1_SW = 22; //Now analog 5 was digital 12; //DSUB pin 8
+int IGN2_SW = 23; //Now analog 4 was digital 13; //DSUB pin 9
 
 //Silence pushbutton. Once button released, alarm is silenced for 5 seconds.
 int SILENCE_SW = 6;
