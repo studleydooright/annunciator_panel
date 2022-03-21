@@ -28,7 +28,7 @@
 
 CRGB leds[NUM_LEDS];
 
-SoftwareSerial mySoftwareSerial(16, 14); // RX, TX
+SoftwareSerial mySoftwareSerial(16, 14); // RX(MOSI), TX(MISO)
 DFRobotDFPlayerMini myDFPlayer;
 void printDetail(uint8_t type, int value);
 
