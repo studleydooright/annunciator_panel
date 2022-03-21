@@ -36,6 +36,7 @@ void printDetail(uint8_t type, int value);
 int GEAR_SW = 3;
 int CANOPY_SW = 4;
 int TEST_SW = 5;
+int BOOSTPUMP_SW = 9;
 int LB_SW = 10;
 int LOWVOLT_SW = 11;
 int IGN1_SW = 22; //Now analog 5 was digital 12; //DSUB pin 8
@@ -61,6 +62,7 @@ int gear_warn = 0;
 int brake_warn = 0;
 int canopy_warn = 0;
 int lowvolt_warn = 0;
+int boostpump_warn = 0;
 int adjbright;
 int alert = 0;
 
@@ -92,6 +94,7 @@ void setup() { //configure input pins as an input and enable the internal pull-u
   pinMode(SILENCE_SW, INPUT_PULLUP);
   pinMode(TEST_SW, INPUT_PULLUP);
   pinMode(LOWVOLT_SW, INPUT_PULLUP);
+  pinMode(BOOSTPUMP_SW, INPUT);
   pinMode(THROTTLE_IN, INPUT);
   pinMode(IGN1_SW, INPUT);
   pinMode(IGN2_SW, INPUT);
