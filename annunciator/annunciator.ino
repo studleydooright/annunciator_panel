@@ -1,5 +1,8 @@
 #include <TimeLib.h>
 #include <FastLED.h>
+#include "Arduino.h"
+#include "SoftwareSerial.h"
+#include "DFRobotDFPlayerMini.h"
 
 /*
   Annunciator Panel SketchThis program will light up the Annunciator Panel based on curent status of the Aircraft.The circuit:
@@ -25,6 +28,9 @@
 
 CRGB leds[NUM_LEDS];
 
+SoftwareSerial mySoftwareSerial(16, 14); // RX, TX
+DFRobotDFPlayerMini myDFPlayer;
+void printDetail(uint8_t type, int value);
 
 //Give all the pins a name. Change the pin numbers here and the logic won't have to change.
 int GEAR_SW = 3;
@@ -38,8 +44,6 @@ int IGN2_SW = 23; //Now analog 4 was digital 13; //DSUB pin 9
 //Silence pushbutton. Once button released, alarm is silenced for 5 seconds.
 int SILENCE_SW = 6;
 
-//Alarm sounder is on pin 3
-int ALARM_OUT = 9;
 
 //Throttle position is analog from MAP sensor
 // MAP Sensor voltage map (0-5 volt):
@@ -50,8 +54,8 @@ int ALARM_OUT = 9;
 // Arduino Analog to Digital conv range 0 - 1023
 
 int THROTTLE_IN = 1; // analog pin 0
-int THROTTLE_LOW = 260; // fast idle (N40EB needs 200)
-int THROTTLE_ADVANCED = 350; // takeoff power (N40EB needs 350)
+int THROTTLE_LOW = 260; // fast idle (N40EB needs 260) (1.28volts)
+int THROTTLE_ADVANCED = 350; // above taxi power (N40EB needs 350)  (1.71volts)
 
 int gear_warn = 0;
 int brake_warn = 0;
@@ -93,25 +97,81 @@ void setup() { //configure input pins as an input and enable the internal pull-u
   pinMode(IGN2_SW, INPUT);
   // configure output pins for output.
 
+  mySoftwareSerial.begin(9600);
   Serial.begin(9600);
-  Serial.print("hello!");
-  //  tft.begin();
-
-  Serial.println("init");
+  //Serial.print("hello!");
+  //Serial.println("init");
 
   uint16_t time = millis();
-  //  tft.fillRect(0, 0, 128, 128, BLACK);
   time = millis() - time;
 
-  Serial.println(time, DEC);
+
   delay(500);
 
-  Serial.println("done");
+  //Serial.println("done");
   delay(1000);
   // initialize all the readings to 0:
   for (int thisReading = 0; thisReading < numReadings; thisReading++) {
     readings[thisReading] = 0;
   }
+  Serial.println();
+  Serial.println(F("DFRobot DFPlayer Mini Demo"));
+  Serial.println(F("Initializing DFPlayer ... (May take 3~5 seconds)"));
+
+
+  if (!myDFPlayer.begin(mySoftwareSerial)) {  //Use softwareSerial to communicate with mp3.
+    Serial.println(F("Unable to begin:"));
+    Serial.println(F("1.Please recheck the connection!"));
+    Serial.println(F("2.Please insert the SD card!"));
+    uint32_t colorArray [] = {CRGB::Red, CRGB::Black, CRGB::Red, CRGB::Black, CRGB::Red};
+    for (uint32_t thisColor : colorArray) {
+      // MASTER (red)
+      leds[8] = thisColor;
+      leds[9] = thisColor;
+      // GEAR (green)
+      leds[7] = thisColor;
+      leds[6] = thisColor;
+      // BRAKE (green)
+      leds[5] = thisColor;
+      leds[4] = thisColor;
+      // CANOPY (green)
+      leds[3] = thisColor;
+      leds[2] = thisColor;
+      //LOW VOLT (yellow)
+      leds[1] = thisColor;
+      leds[0] = thisColor;
+      FastLED.show();
+      delay(1000);
+      //while (true);
+    }
+  } else {
+    uint32_t colorArray [] = {CRGB::Blue, CRGB::Yellow, CRGB::Green, CRGB::Black, CRGB::Blue, CRGB::Yellow, CRGB::Green};
+    for (uint32_t thisColor : colorArray) {
+      // MASTER (red)
+      leds[8] = thisColor;
+      leds[9] = thisColor;
+      // GEAR (green)
+      leds[7] = thisColor;
+      leds[6] = thisColor;
+      // BRAKE (green)
+      leds[5] = thisColor;
+      leds[4] = thisColor;
+      // CANOPY (green)
+      leds[3] = thisColor;
+      leds[2] = thisColor;
+      //LOW VOLT (yellow)
+      leds[1] = thisColor;
+      leds[0] = thisColor;
+      FastLED.show();
+      delay(1000);
+    }
+  }
+
+  Serial.println(F("DFPlayer Mini online."));
+  myDFPlayer.volume(30);  //Set volume value. From 0 to 30
+  myDFPlayer.play(1);  //Play the first mp3
+
+  Serial.println(time, DEC);
 }
 
 /** * Read all the switches and call the display function
@@ -147,6 +207,7 @@ void loop() {
 
   // calculate the throttleAverage:
   throttleAverage = total / numReadings;
+  throttleAverage = throttleVal;
   // send it to the computer as ASCII digits
   //Serial.println(throttleAverage);
   delay(1);        // delay in between reads for stability
@@ -158,10 +219,13 @@ void loop() {
   display(gearVal, canopyVal, lbVal, throttleAverage, silenceVal, testVal, lowvoltVal, ign1Val, ign2Val);
 
   // write the voltage value to the serial monitor:
-  //Serial.println(voltage);
+  //Serial.print(throttleVal);
+  //Serial.print("\t");
+  //Serial.print(voltage);
+  //Serial.println();
   //Serial.println(throttleAverage);
   //Serial.println(ign1Val);
-  Serial.println(ign2Val);
+  //Serial.println(ign2Val);
 
 }
 
@@ -170,11 +234,11 @@ void loop() {
 */
 int isAlertState(int gearVal, int canopyVal, int lbVal, int throttleAverage, int lowvoltVal)
 {
-alert = 0;
-canopy_warn = 0;
-brake_warn = 0;
-gear_warn = 0;
-lowvolt_warn = 0;
+  alert = 0;
+  canopy_warn = 0;
+  brake_warn = 0;
+  gear_warn = 0;
+  lowvolt_warn = 0;
 
   // low volt check
   if (lowvoltVal) {
@@ -185,25 +249,25 @@ lowvolt_warn = 0;
     alert = 1;
     canopy_warn = 1;
     //Serial.println("Throttle is advanced, and Canopy is open; canopy_warn = 1");
-  }  
+  }
   if ((throttleAverage >= THROTTLE_ADVANCED) && (lbVal == LB_IS_EXTENDED)) {
     alert = 1;
     brake_warn = 1;
     //Serial.println("Throttle is advanced, and Landing Brake is extended; brake_warn = 1");
-  }  
+  }
   if ((throttleAverage >= THROTTLE_ADVANCED) && (lbVal == LB_IS_EXTENDED) && (canopyVal == CANOPY_IS_OPEN)) {
     alert = 1;
     brake_warn = 1;
     canopy_warn = 1;
     //Serial.println("Throttle is advanced, and Landing Brake is extended; brake_warn = 1 AND Canopy is open; canopy_warn = 1");
-  }  
+  }
   if ((throttleAverage <= THROTTLE_LOW) && (gearVal == GEAR_IS_RETRACTED)) {
     alert = 1;
     gear_warn = 1;
     //Serial.println("Throttle is closed, gear retracted; gear_warn = 1");
   }
 
-  Serial.println(alert);
+  //Serial.println(alert);
   return alert;
 }
 
@@ -231,7 +295,7 @@ void display(int gearVal, int canopyVal, int lbVal, int throttleAverage, int sil
 
   if (testVal == TEST_IS_PRESSED) {
     //Serial.println("Test button pressed");
-    digitalWrite(ALARM_OUT, HIGH);
+    //digitalWrite(ALARM_OUT, HIGH);
     // MASTER (red)
     leds[8] = CRGB::Red;
     leds[9] = CRGB::Red;
@@ -255,7 +319,7 @@ void display(int gearVal, int canopyVal, int lbVal, int throttleAverage, int sil
     } else {
       adjbright = 1;
     }
-    Serial.println(adjbright);
+    //Serial.println(adjbright);
     delay(1000);
   } else {
     if (alert) {
@@ -311,11 +375,17 @@ void display(int gearVal, int canopyVal, int lbVal, int throttleAverage, int sil
         leds[0] = CRGB::Black;
         leds[1] = CRGB::Black;
       }
-      if (now() > silencedAt + 60) {
-        digitalWrite(ALARM_OUT, HIGH);
-      } else {
-        digitalWrite(ALARM_OUT, LOW);
+      //digitalWrite(ALARM_OUT, HIGH);
+      if (gear_warn) {
+        myDFPlayer.play(2); //gear
       }
+      if (brake_warn) {
+        myDFPlayer.play(3); //brake
+      }
+      if (canopy_warn) {
+        myDFPlayer.play(4); //canopy
+      }
+
     } else {
       if (gearVal == GEAR_IS_RETRACTED) { //HIGH means that the gear is retracted; LOW means that the gear is extended
         leds[7] = CRGB::Black;
@@ -351,16 +421,18 @@ void display(int gearVal, int canopyVal, int lbVal, int throttleAverage, int sil
       if ((ign1Val != IGN1_IS_OFF) && (ign2Val != IGN2_IS_OFF)) {
         leds[0] = CRGB::Black;
         leds[1] = CRGB::Black;
+      } else { // output the master alarm status
+        leds[9] = CRGB::Black;
+        leds[8] = CRGB::Black;
+        //digitalWrite(ALARM_OUT, LOW);
       }
       // The silence button is open normally. Logic is reversed.
       if (silenceVal) {
         silencedAt = now();
-      } else { // output the master alarm status
-        leds[9] = CRGB::Black;
-        leds[8] = CRGB::Black;
-        digitalWrite(ALARM_OUT, LOW);
       }
     }
   }
+  //Serial.println(silencedAt);
   FastLED.show();
+  delay(1000);
 }
