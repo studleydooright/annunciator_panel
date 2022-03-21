@@ -71,6 +71,7 @@ int GEAR_IS_RETRACTED = HIGH; //N40EB needs HIGH
 int LB_IS_EXTENDED = LOW; //N40EB needs LOW
 int CANOPY_IS_OPEN = HIGH; //N40EB needs HIGH
 int TEST_IS_PRESSED = LOW; //N40EB needs LOW
+int BOOSTPUMP_IS_ON = HIGH;
 int IGN1_IS_OFF = HIGH; // LED is ON when Ignition is off (HIGH; do we need pull-down resistors?)
 int IGN2_IS_OFF = HIGH; // LED is ON when Ignition is off (HIGH)
 
@@ -187,6 +188,7 @@ void loop() {
   int testVal = digitalRead(TEST_SW);
   int silenceVal = digitalRead(SILENCE_SW);
   int lowvoltVal = digitalRead(LOWVOLT_SW);
+  int boostpumpVal = digitalRead(BOOSTPUMP_SW);
   int throttleVal = analogRead(THROTTLE_IN);
   //int throttleVal = digitalRead(THROTTLE_SW);
   int ign1Val = digitalRead(IGN1_SW);
@@ -216,10 +218,10 @@ void loop() {
   delay(1);        // delay in between reads for stability
 
   // Set the alert state
-  alert = isAlertState(gearVal, canopyVal, lbVal, throttleAverage, lowvoltVal);
+  alert = isAlertState(gearVal, canopyVal, lbVal, throttleAverage, lowvoltVal, boostpumpVal);
 
   // Call the display function after reading the alert state
-  display(gearVal, canopyVal, lbVal, throttleAverage, silenceVal, testVal, lowvoltVal, ign1Val, ign2Val);
+  display(gearVal, canopyVal, lbVal, throttleAverage, silenceVal, testVal, lowvoltVal, boostpumpVal, ign1Val, ign2Val);
 
   // write the voltage value to the serial monitor:
   //Serial.print(throttleVal);
@@ -235,18 +237,22 @@ void loop() {
 /* * check the logic to see if there is a master warning to display
   returns 1 if the master warning should be set.
 */
-int isAlertState(int gearVal, int canopyVal, int lbVal, int throttleAverage, int lowvoltVal)
+int isAlertState(int gearVal, int canopyVal, int lbVal, int throttleAverage, int lowvoltVal, int boostpumpVal)
 {
-  alert = 0;
-  canopy_warn = 0;
-  brake_warn = 0;
-  gear_warn = 0;
-  lowvolt_warn = 0;
+  /*
+    alert = 0;
+    canopy_warn = 0;
+    brake_warn = 0;
+    gear_warn = 0;
+    lowvolt_warn = 0;
+    boostpump_warn = 0;
+  */
 
   // low volt check
   if (lowvoltVal) {
-    //alert = 1;
-    //lowvolt_warn = 1;
+    alert = 1;
+    lowvolt_warn = 1;
+    //Serial.println("Low volts");
   }
   if ((throttleAverage >= THROTTLE_ADVANCED) && (canopyVal == CANOPY_IS_OPEN)) {
     alert = 1;
@@ -278,16 +284,13 @@ int isAlertState(int gearVal, int canopyVal, int lbVal, int throttleAverage, int
   proper state, and handle master alarm state,
   including sound.
 */
-void display(int gearVal, int canopyVal, int lbVal, int throttleAverage, int silenceVal, int testVal, int lowvoltVal, int ign1Val, int ign2Val)
+void display(int gearVal, int canopyVal, int lbVal, int throttleAverage, int silenceVal, int testVal, int lowvoltVal, int boostpumpVal, int ign1Val, int ign2Val)
 {
 
   //Serial.println("Alert state ");
   //Serial.println(alert);
 
   FastLED.clear();
-  // gap is the cycle time for the tone. state is the tone state.
-  static int gap = 0;
-  static int state = LOW;
 
   // silenced at is the time the alarm was silenced at.
   static time_t silencedAt = 0;
@@ -323,6 +326,7 @@ void display(int gearVal, int canopyVal, int lbVal, int throttleAverage, int sil
       adjbright = 1;
     }
     //Serial.println(adjbright);
+    myDFPlayer.play(1);  //Play the SystemTest file
     delay(1000);
   } else {
     if (alert) {
@@ -356,8 +360,8 @@ void display(int gearVal, int canopyVal, int lbVal, int throttleAverage, int sil
       }
       if (lowvolt_warn) {
         //Serial.println("Caution issued due to Low Volt warning");
-        //leds[1] = CRGB::Yellow;
-        //leds[0] = CRGB::Yellow;
+        leds[1] = CRGB::Yellow;
+        leds[0] = CRGB::Yellow;
       } else {
         leds[1] = CRGB::Black;
         leds[0] = CRGB::Black;
@@ -387,6 +391,9 @@ void display(int gearVal, int canopyVal, int lbVal, int throttleAverage, int sil
       }
       if (canopy_warn) {
         myDFPlayer.play(4); //canopy
+      }
+      if (lowvolt_warn) {
+        myDFPlayer.play(5); //lowvolt
       }
 
     } else {
