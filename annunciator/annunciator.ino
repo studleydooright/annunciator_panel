@@ -26,9 +26,9 @@
 #define BRIGHTNESS  70
 //#define CHR_DELAY 1000 // time in ms between characters
 
-const int alertInterval = 5000; //5 seconds
-const long silenceInterval = 60000; // 1 minute
-const long boostalertInterval = 3000000; //5 minutes
+const unsigned long alertInterval = 5000; //5 seconds
+const unsigned long silenceInterval = 60000; // 1 minute
+const unsigned long boostalertInterval = 3000000; //5 minutes
 
 CRGB leds[NUM_LEDS];
 
@@ -80,7 +80,9 @@ int IGN2_IS_OFF = HIGH; // LED is ON when Ignition is off (HIGH)
 unsigned long currentMillis = 0;
 unsigned long previousAlertMillis = 0;
 unsigned long previousBoostAlertMillis = 0;
-unsigned long previousSilencedMillis = 0;
+unsigned long previousSilencedMillis = 60000;
+unsigned long playInterval = 5000;
+unsigned long lastPlayMillis = 0;
 
 // Define the number of throttle samples to keep track of. The higher the number, the
 // more the readings will be smoothed, but the slower the output will respond to
@@ -366,19 +368,31 @@ void display(int gearVal, int canopyVal, int lbVal, int throttleAverage, int sil
       //digitalWrite(ALARM_OUT, HIGH);
       if ((currentMillis - previousSilencedMillis) <= silenceInterval) {
       } else {
-        if (gear_warn) {
-          myDFPlayer.play(2); //gear
-        }
-        if (brake_warn) {
-          myDFPlayer.play(3); //brake
-        }
-        if (canopy_warn) {
-          myDFPlayer.play(4); //canopy
-        }
-        if ((brake_warn) && (canopy_warn)) {
-          myDFPlayer.play(3); //brake
-          delay(1000);
-          myDFPlayer.play(4); //canopy
+        if ((currentMillis - lastPlayMillis) >= 10000) {
+          for (int i = 0; i < 2; i++) {
+            if (gear_warn) {
+              myDFPlayer.play(2); //gear
+            }
+            if (brake_warn) {
+              myDFPlayer.play(3); //brake
+            }
+            if (canopy_warn) {
+              myDFPlayer.play(4); //canopy
+            }
+            /*
+              if ((brake_warn) && (canopy_warn)) {
+              myDFPlayer.play(3); //brake
+              delay(1000);
+              myDFPlayer.play(4); //canopy
+              }
+            */
+            lastPlayMillis = currentMillis;
+            Serial.print("I:");
+            Serial.print(i);
+            Serial.print("\t");
+            Serial.println();
+            delay(1100);
+          }
         }
       }
       /*
@@ -460,6 +474,9 @@ void display(int gearVal, int canopyVal, int lbVal, int throttleAverage, int sil
   Serial.println();
   Serial.print("silenceInterval:");
   Serial.print(silenceInterval);
+  Serial.println();
+  Serial.print("currentMillis - lastPlayMillis:");
+  Serial.print(currentMillis - lastPlayMillis);
   Serial.println();
   FastLED.show();
   delay(1000);
