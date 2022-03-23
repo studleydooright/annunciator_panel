@@ -129,47 +129,25 @@ void setup() { //configure input pins as an input and enable the internal pull-u
     Serial.println(F("Unable to begin:"));
     Serial.println(F("1.Please recheck the connection!"));
     Serial.println(F("2.Please insert the SD card!"));
+    int ledCells [] = {9,8,7,6,5,4,3,2,1,0};
     uint32_t colorArray [] = {CRGB::Red, CRGB::Black, CRGB::Red, CRGB::Black, CRGB::Red};
     for (uint32_t thisColor : colorArray) {
-      // MASTER (red)
-      leds[8] = thisColor;
-      leds[9] = thisColor;
-      // GEAR (green)
-      leds[7] = thisColor;
-      leds[6] = thisColor;
-      // BRAKE (green)
-      leds[5] = thisColor;
-      leds[4] = thisColor;
-      // CANOPY (green)
-      leds[3] = thisColor;
-      leds[2] = thisColor;
-      //LOW VOLT (yellow)
-      leds[1] = thisColor;
-      leds[0] = thisColor;
-      FastLED.show();
-      delay(1000);
-      //while (true);
+      for (int thisCell : ledCells) {
+        leds[thisCell] = thisColor;
+        FastLED.show();
+        delay(50);
+      }
     }
+    //while (true);
   } else {
+    int ledCells [] = {9,8,7,6,5,4,3,2,1,0};
     uint32_t colorArray [] = {CRGB::Blue, CRGB::Yellow, CRGB::Green, CRGB::Black, CRGB::Blue, CRGB::Yellow, CRGB::Green};
     for (uint32_t thisColor : colorArray) {
-      // MASTER (red)
-      leds[8] = thisColor;
-      leds[9] = thisColor;
-      // GEAR (green)
-      leds[7] = thisColor;
-      leds[6] = thisColor;
-      // BRAKE (green)
-      leds[5] = thisColor;
-      leds[4] = thisColor;
-      // CANOPY (green)
-      leds[3] = thisColor;
-      leds[2] = thisColor;
-      //LOW VOLT (yellow)
-      leds[1] = thisColor;
-      leds[0] = thisColor;
-      FastLED.show();
-      delay(1000);
+      for (int thisCell : ledCells) {
+        leds[thisCell] = thisColor;
+        FastLED.show();
+        delay(70);
+      }
     }
   }
 
