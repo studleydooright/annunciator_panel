@@ -27,8 +27,8 @@
 //#define CHR_DELAY 1000 // time in ms between characters
 
 const int alertInterval = 5000; //5 seconds
-const int silenceInterval = 60000; // 1 minute
-const int boostalertInterval = 3000000; //5 minutes
+const long silenceInterval = 60000; // 1 minute
+const long boostalertInterval = 3000000; //5 minutes
 
 CRGB leds[NUM_LEDS];
 
@@ -129,7 +129,7 @@ void setup() { //configure input pins as an input and enable the internal pull-u
     Serial.println(F("Unable to begin:"));
     Serial.println(F("1.Please recheck the connection!"));
     Serial.println(F("2.Please insert the SD card!"));
-    int ledCells [] = {9,8,7,6,5,4,3,2,1,0};
+    int ledCells [] = {9, 8, 7, 6, 5, 4, 3, 2, 1, 0};
     uint32_t colorArray [] = {CRGB::Red, CRGB::Black, CRGB::Red, CRGB::Black, CRGB::Red};
     for (uint32_t thisColor : colorArray) {
       for (int thisCell : ledCells) {
@@ -140,7 +140,7 @@ void setup() { //configure input pins as an input and enable the internal pull-u
     }
     //while (true);
   } else {
-    int ledCells [] = {9,8,7,6,5,4,3,2,1,0};
+    int ledCells [] = {9, 8, 7, 6, 5, 4, 3, 2, 1, 0};
     uint32_t colorArray [] = {CRGB::Blue, CRGB::Yellow, CRGB::Green, CRGB::Black, CRGB::Blue, CRGB::Yellow, CRGB::Green};
     for (uint32_t thisColor : colorArray) {
       for (int thisCell : ledCells) {
@@ -212,7 +212,7 @@ void loop() {
   //Serial.println();
   //Serial.println(throttleAverage);
   //Serial.println(ign1Val);
-  Serial.println(boostpumpVal);
+  //Serial.println(boostpumpVal);
 
 }
 
@@ -221,6 +221,13 @@ void loop() {
 */
 int isAlertState(int gearVal, int canopyVal, int lbVal, int throttleAverage, int lowvoltVal, int boostpumpVal)
 {
+  // reset the alert and warning variables each loop
+  alert = 0;
+  canopy_warn = 0;
+  brake_warn = 0;
+  gear_warn = 0;
+  lowvolt_warn = 0;
+  boostpump_warn = 0;
 
   // low volt check; I no longer want to treat the Low Volt indicator as an alarm, as it's a typical thing when engine not running or at low rpm...
   /*
@@ -357,20 +364,31 @@ void display(int gearVal, int canopyVal, int lbVal, int throttleAverage, int sil
         leds[1] = CRGB::Black;
       }
       //digitalWrite(ALARM_OUT, HIGH);
-      if (gear_warn) {
-        myDFPlayer.play(2); //gear
-      }
-      if (brake_warn) {
-        myDFPlayer.play(3); //brake
-      }
-      if (canopy_warn) {
-        myDFPlayer.play(4); //canopy
+      if ((currentMillis - previousSilencedMillis) <= silenceInterval) {
+      } else {
+        if (gear_warn) {
+          myDFPlayer.play(2); //gear
+        }
+        if (brake_warn) {
+          myDFPlayer.play(3); //brake
+        }
+        if (canopy_warn) {
+          myDFPlayer.play(4); //canopy
+        }
+        if ((brake_warn) && (canopy_warn)) {
+          myDFPlayer.play(3); //brake
+          delay(1000);
+          myDFPlayer.play(4); //canopy
+        }
       }
       /*
             if (lowvolt_warn) {
               myDFPlayer.play(5); //lowvolt
             }
       */
+      if (silenceVal) {
+        previousSilencedMillis = currentMillis;
+      }
     } else { // When not in Alarm state, ensure Black LEDs with exception of when IGN1|IGN2 are not on...
       if (gearVal == GEAR_IS_RETRACTED) { //HIGH means that the gear is retracted; LOW means that the gear is extended
         leds[7] = CRGB::Black;
@@ -407,10 +425,6 @@ void display(int gearVal, int canopyVal, int lbVal, int throttleAverage, int sil
         leds[8] = CRGB::Black;
         //digitalWrite(ALARM_OUT, LOW);
       }
-      // The silence button is open normally. Logic is reversed.
-      if (millis() - previousSilencedMillis >= silenceInterval) {
-
-      }
     }
   }
   // Examine the Low Volt or Boost Pump states regardless of Alarm state
@@ -430,7 +444,23 @@ void display(int gearVal, int canopyVal, int lbVal, int throttleAverage, int sil
     leds[3] = CRGB::Black;
     //leds[2] = CRGB::Black;
   }
-  //Serial.println(silencedAt);
+  //Serial.print("Current Millis:");
+  //Serial.print("\t");
+  //Serial.print(currentMillis);
+  //Serial.println();
+  //Serial.print("previousSilencedMillis");
+  //Serial.print("\t");
+  //Serial.print(previousSilencedMillis);
+  //Serial.println();
+  //Serial.print("Silenced Switch pressed:");
+  //Serial.print(silenceVal);
+  //Serial.println();
+  Serial.print("currentMillis - previousSilencedMillis:");
+  Serial.print(currentMillis - previousSilencedMillis);
+  Serial.println();
+  Serial.print("silenceInterval:");
+  Serial.print(silenceInterval);
+  Serial.println();
   FastLED.show();
   delay(1000);
 }
