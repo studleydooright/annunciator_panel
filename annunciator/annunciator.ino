@@ -26,25 +26,27 @@
 #define BRIGHTNESS  70
 //#define CHR_DELAY 1000 // time in ms between characters
 
+const int alertInterval = 5000; //5 seconds
+const int silenceInterval = 60000; // 1 minute
+const int boostalertInterval = 3000000; //5 minutes
+
 CRGB leds[NUM_LEDS];
 
-SoftwareSerial mySoftwareSerial(16, 14); // RX(MOSI), TX(MISO)
+SoftwareSerial mySoftwareSerial(14, 16); // RX(MOSI), TX(MISO)
 DFRobotDFPlayerMini myDFPlayer;
 void printDetail(uint8_t type, int value);
 
-//Give all the pins a name. Change the pin numbers here and the logic won't have to change.
+//Pin assignments
 int GEAR_SW = 3;
 int CANOPY_SW = 4;
 int TEST_SW = 5;
-int BOOSTPUMP_SW = 9;
+int SILENCE_SW = 6;
 int LB_SW = 10;
 int LOWVOLT_SW = 11;
+int THROTTLE_IN = 19; // analog pin A1; digital pin 19
+int BOOSTPUMP_SW = 21; // Analog 3
 int IGN1_SW = 22; //Now analog 5 was digital 12; //DSUB pin 8
 int IGN2_SW = 23; //Now analog 4 was digital 13; //DSUB pin 9
-
-//Silence pushbutton. Once button released, alarm is silenced for 5 seconds.
-int SILENCE_SW = 6;
-
 
 //Throttle position is analog from MAP sensor
 // MAP Sensor voltage map (0-5 volt):
@@ -54,7 +56,6 @@ int SILENCE_SW = 6;
 // Vol 4.9 4.4 3.8  3.3   2.7   2.2   1.7   1.1   0.6   0.3   0.3
 // Arduino Analog to Digital conv range 0 - 1023
 
-int THROTTLE_IN = 1; // analog pin 0
 int THROTTLE_LOW = 260; // fast idle (N40EB needs 260) (1.28volts)
 int THROTTLE_ADVANCED = 350; // above taxi power (N40EB needs 350)  (1.71volts)
 
@@ -65,6 +66,7 @@ int lowvolt_warn = 0;
 int boostpump_warn = 0;
 int adjbright;
 int alert = 0;
+int silenced_state = 0;
 
 // Set the switch positions (HIGH/LOW) for the gear, landing brake, and canopy; change these as needed for testing
 int GEAR_IS_RETRACTED = HIGH; //N40EB needs HIGH
@@ -74,6 +76,11 @@ int TEST_IS_PRESSED = LOW; //N40EB needs LOW
 int BOOSTPUMP_IS_ON = HIGH;
 int IGN1_IS_OFF = HIGH; // LED is ON when Ignition is off (HIGH; do we need pull-down resistors?)
 int IGN2_IS_OFF = HIGH; // LED is ON when Ignition is off (HIGH)
+
+unsigned long currentMillis = 0;
+unsigned long previousAlertMillis = 0;
+unsigned long previousBoostAlertMillis = 0;
+unsigned long previousSilencedMillis = 0;
 
 // Define the number of throttle samples to keep track of. The higher the number, the
 // more the readings will be smoothed, but the slower the output will respond to
@@ -106,10 +113,6 @@ void setup() { //configure input pins as an input and enable the internal pull-u
   //Serial.print("hello!");
   //Serial.println("init");
 
-  uint16_t time = millis();
-  time = millis() - time;
-
-
   delay(500);
 
   //Serial.println("done");
@@ -121,7 +124,6 @@ void setup() { //configure input pins as an input and enable the internal pull-u
   Serial.println();
   Serial.println(F("DFRobot DFPlayer Mini Demo"));
   Serial.println(F("Initializing DFPlayer ... (May take 3~5 seconds)"));
-
 
   if (!myDFPlayer.begin(mySoftwareSerial)) {  //Use softwareSerial to communicate with mp3.
     Serial.println(F("Unable to begin:"));
@@ -173,14 +175,16 @@ void setup() { //configure input pins as an input and enable the internal pull-u
 
   Serial.println(F("DFPlayer Mini online."));
   myDFPlayer.volume(30);  //Set volume value. From 0 to 30
-  myDFPlayer.play(1);  //Play the first mp3
+  myDFPlayer.play(1);  //Play the first mp3 (SystemTest)
 
-  Serial.println(time, DEC);
 }
 
 /** * Read all the switches and call the display function
 */
 void loop() {
+
+  currentMillis = millis();
+
   //read the switch value into a variable
   int gearVal = digitalRead(GEAR_SW);
   int canopyVal = digitalRead(CANOPY_SW);
@@ -230,7 +234,7 @@ void loop() {
   //Serial.println();
   //Serial.println(throttleAverage);
   //Serial.println(ign1Val);
-  //Serial.println(ign2Val);
+  Serial.println(boostpumpVal);
 
 }
 
@@ -239,21 +243,15 @@ void loop() {
 */
 int isAlertState(int gearVal, int canopyVal, int lbVal, int throttleAverage, int lowvoltVal, int boostpumpVal)
 {
-  /*
-    alert = 0;
-    canopy_warn = 0;
-    brake_warn = 0;
-    gear_warn = 0;
-    lowvolt_warn = 0;
-    boostpump_warn = 0;
-  */
 
-  // low volt check
-  if (lowvoltVal) {
-    alert = 1;
-    lowvolt_warn = 1;
-    //Serial.println("Low volts");
-  }
+  // low volt check; I no longer want to treat the Low Volt indicator as an alarm, as it's a typical thing when engine not running or at low rpm...
+  /*
+    if (lowvoltVal) {
+      alert = 1;
+      lowvolt_warn = 1;
+      //Serial.println("Low volts");
+    }
+  */
   if ((throttleAverage >= THROTTLE_ADVANCED) && (canopyVal == CANOPY_IS_OPEN)) {
     alert = 1;
     canopy_warn = 1;
@@ -292,16 +290,12 @@ void display(int gearVal, int canopyVal, int lbVal, int throttleAverage, int sil
 
   FastLED.clear();
 
-  // silenced at is the time the alarm was silenced at.
-  static time_t silencedAt = 0;
-
   // Keep in mind the pullup means the pushbutton's
   // logic is inverted. It goes HIGH when it's open,
   // and LOW when it's pressed.:
 
   if (testVal == TEST_IS_PRESSED) {
     //Serial.println("Test button pressed");
-    //digitalWrite(ALARM_OUT, HIGH);
     // MASTER (red)
     leds[8] = CRGB::Red;
     leds[9] = CRGB::Red;
@@ -358,27 +352,29 @@ void display(int gearVal, int canopyVal, int lbVal, int throttleAverage, int sil
         leds[3] = CRGB::Black;
         leds[2] = CRGB::Black;
       }
-      if (lowvolt_warn) {
-        //Serial.println("Caution issued due to Low Volt warning");
-        leds[1] = CRGB::Yellow;
-        leds[0] = CRGB::Yellow;
-      } else {
-        leds[1] = CRGB::Black;
-        leds[0] = CRGB::Black;
-      }
-      if ((ign1Val == IGN1_IS_OFF) && (ign2Val != IGN2_IS_OFF)) {
+      /*
+            if (lowvolt_warn) {
+              //Serial.println("Caution issued due to Low Volt warning");
+              leds[1] = CRGB::Yellow;
+              leds[0] = CRGB::Yellow;
+            } else {
+              leds[1] = CRGB::Black;
+              leds[0] = CRGB::Black;
+            }
+      */
+      if (!(lowvoltVal) && (ign1Val == IGN1_IS_OFF) && (ign2Val != IGN2_IS_OFF)) {
         leds[0] = CRGB::Blue;
         leds[1] = CRGB::Black;
       }
-      if ((ign1Val != IGN1_IS_OFF) && (ign2Val == IGN2_IS_OFF)) {
+      if (!(lowvoltVal) && (ign1Val != IGN1_IS_OFF) && (ign2Val == IGN2_IS_OFF)) {
         leds[0] = CRGB::Black;
         leds[1] = CRGB::Blue;
       }
-      if ((ign1Val == IGN1_IS_OFF) && (ign2Val == IGN2_IS_OFF)) {
+      if (!(lowvoltVal) && (ign1Val == IGN1_IS_OFF) && (ign2Val == IGN2_IS_OFF)) {
         leds[0] = CRGB::Black;
         leds[1] = CRGB::Black;
       }
-      if ((ign1Val != IGN1_IS_OFF) && (ign2Val != IGN2_IS_OFF)) {
+      if (!(lowvoltVal) && (ign1Val != IGN1_IS_OFF) && (ign2Val != IGN2_IS_OFF)) {
         leds[0] = CRGB::Black;
         leds[1] = CRGB::Black;
       }
@@ -392,11 +388,12 @@ void display(int gearVal, int canopyVal, int lbVal, int throttleAverage, int sil
       if (canopy_warn) {
         myDFPlayer.play(4); //canopy
       }
-      if (lowvolt_warn) {
-        myDFPlayer.play(5); //lowvolt
-      }
-
-    } else {
+      /*
+            if (lowvolt_warn) {
+              myDFPlayer.play(5); //lowvolt
+            }
+      */
+    } else { // When not in Alarm state, ensure Black LEDs with exception of when IGN1|IGN2 are not on...
       if (gearVal == GEAR_IS_RETRACTED) { //HIGH means that the gear is retracted; LOW means that the gear is extended
         leds[7] = CRGB::Black;
         leds[6] = CRGB::Black;
@@ -412,23 +409,19 @@ void display(int gearVal, int canopyVal, int lbVal, int throttleAverage, int sil
         leds[2] = CRGB::Black;
         //Serial.println("Canopy is open");
       }
-      if (lowvoltVal == LOW) {
-        leds[1] = CRGB::Black;
-        leds[0] = CRGB::Black;
-      }
-      if ((ign1Val == IGN1_IS_OFF) && (ign2Val != IGN2_IS_OFF)) {
+      if (!(lowvoltVal) && (ign1Val == IGN1_IS_OFF) && (ign2Val != IGN2_IS_OFF)) {
         leds[0] = CRGB::Blue;
         leds[1] = CRGB::Black;
       }
-      if ((ign1Val != IGN1_IS_OFF) && (ign2Val == IGN2_IS_OFF)) {
+      if (!(lowvoltVal) && (ign1Val != IGN1_IS_OFF) && (ign2Val == IGN2_IS_OFF)) {
         leds[0] = CRGB::Black;
         leds[1] = CRGB::Blue;
       }
-      if ((ign1Val == IGN1_IS_OFF) && (ign2Val == IGN2_IS_OFF)) {
+      if (!(lowvoltVal) && (ign1Val == IGN1_IS_OFF) && (ign2Val == IGN2_IS_OFF)) {
         leds[0] = CRGB::Black;
         leds[1] = CRGB::Black;
       }
-      if ((ign1Val != IGN1_IS_OFF) && (ign2Val != IGN2_IS_OFF)) {
+      if (!(lowvoltVal) && (ign1Val != IGN1_IS_OFF) && (ign2Val != IGN2_IS_OFF)) {
         leds[0] = CRGB::Black;
         leds[1] = CRGB::Black;
       } else { // output the master alarm status
@@ -437,10 +430,27 @@ void display(int gearVal, int canopyVal, int lbVal, int throttleAverage, int sil
         //digitalWrite(ALARM_OUT, LOW);
       }
       // The silence button is open normally. Logic is reversed.
-      if (silenceVal) {
-        silencedAt = now();
+      if (millis() - previousSilencedMillis >= silenceInterval) {
+
       }
     }
+  }
+  // Examine the Low Volt or Boost Pump states regardless of Alarm state
+  if (lowvoltVal) {
+    //Serial.println("Caution issued due to Low Volt warning");
+    leds[1] = CRGB::Yellow;
+    leds[0] = CRGB::Yellow;
+  } else {
+    leds[1] = CRGB::Black;
+    leds[0] = CRGB::Black;
+  }
+  if (boostpumpVal) { // This uses the left half of the Canopy light cell
+    //Serial.println("Caution issued due to Canopy warning");
+    leds[3] = CRGB::Purple;
+    //leds[2] = CRGB::Purple;
+  } else {
+    leds[3] = CRGB::Black;
+    //leds[2] = CRGB::Black;
   }
   //Serial.println(silencedAt);
   FastLED.show();
