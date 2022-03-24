@@ -40,7 +40,7 @@ void printDetail(uint8_t type, int value);
 int GEAR_SW = 3;
 int CANOPY_SW = 4;
 int TEST_SW = 5;
-int SILENCE_SW = 6;
+int SILENCE_SW = 7;
 int LB_SW = 10;
 int LOWVOLT_SW = 11;
 int THROTTLE_IN = 19; // analog pin A1; digital pin 19
@@ -367,8 +367,12 @@ void display(int gearVal, int canopyVal, int lbVal, int throttleAverage, int sil
       }
       //digitalWrite(ALARM_OUT, HIGH);
       if ((currentMillis - previousSilencedMillis) <= silenceInterval) {
+        //Serial.println("Previous Silenced is <= the Silence Interval");
+        //Serial.println();
       } else {
-        if ((currentMillis - lastPlayMillis) >= 10000) {
+        //Serial.println("Previous Silenced is >= the Silence Interval");
+        //Serial.println();
+        if ((currentMillis - lastPlayMillis) >= 11000) {
           for (int i = 0; i < 2; i++) {
             if (gear_warn) {
               myDFPlayer.play(2); //gear
@@ -387,10 +391,10 @@ void display(int gearVal, int canopyVal, int lbVal, int throttleAverage, int sil
               }
             */
             lastPlayMillis = currentMillis;
-            Serial.print("I:");
-            Serial.print(i);
-            Serial.print("\t");
-            Serial.println();
+            //Serial.print("I:");
+            //Serial.print(i);
+            //Serial.print("\t");
+            //Serial.println();
             delay(1100);
           }
         }
@@ -400,7 +404,7 @@ void display(int gearVal, int canopyVal, int lbVal, int throttleAverage, int sil
               myDFPlayer.play(5); //lowvolt
             }
       */
-      if (silenceVal) {
+      if (silenceVal == HIGH) {
         previousSilencedMillis = currentMillis;
       }
     } else { // When not in Alarm state, ensure Black LEDs with exception of when IGN1|IGN2 are not on...
@@ -470,14 +474,18 @@ void display(int gearVal, int canopyVal, int lbVal, int throttleAverage, int sil
   //Serial.print(silenceVal);
   //Serial.println();
   Serial.print("currentMillis - previousSilencedMillis:");
+  Serial.print("\t");
   Serial.print(currentMillis - previousSilencedMillis);
   Serial.println();
-  Serial.print("silenceInterval:");
-  Serial.print(silenceInterval);
-  Serial.println();
+  //Serial.print("silenceInterval:");
+  //Serial.print(silenceInterval);
+  //Serial.println();
   Serial.print("currentMillis - lastPlayMillis:");
+  Serial.print("\t");
   Serial.print(currentMillis - lastPlayMillis);
   Serial.println();
+  Serial.println();
+  
   FastLED.show();
-  delay(1000);
+  delay(500);
 }
