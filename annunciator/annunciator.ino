@@ -1,4 +1,5 @@
 #include <TimeLib.h>
+#define FASTLED_INTERNAL
 #include <FastLED.h>
 #include "Arduino.h"
 #include "SoftwareSerial.h"
@@ -20,13 +21,12 @@
 
   Requires the FastLED and Time libraries
 */
-
 #define LED_PIN     2
 #define NUM_LEDS    10
 #define BRIGHTNESS  70
 //#define CHR_DELAY 1000 // time in ms between characters
 
-const unsigned long alertInterval = 5000; //5 seconds
+const unsigned long alertInterval = 11000; //11 seconds
 const unsigned long silenceInterval = 60000; // 1 minute
 const unsigned long boostalertInterval = 3000000; //5 minutes
 
@@ -34,7 +34,6 @@ CRGB leds[NUM_LEDS];
 
 SoftwareSerial mySoftwareSerial(14, 16); // RX(MOSI), TX(MISO)
 DFRobotDFPlayerMini myDFPlayer;
-void printDetail(uint8_t type, int value);
 
 //Pin assignments
 int GEAR_SW = 3;
@@ -59,6 +58,20 @@ int IGN2_SW = 23; //Now analog 4 was digital 13; //DSUB pin 9
 int THROTTLE_LOW = 260; // fast idle (N40EB needs 260) (1.28volts)
 int THROTTLE_ADVANCED = 350; // above taxi power (N40EB needs 350)  (1.71volts)
 
+// switch variables
+int gearVal = 0;
+int canopyVal = 0;
+int lbVal = 0;
+int testVal = 0;
+int silenceVal = 0;
+int lowvoltVal = 0;
+int boostpumpVal = 0;
+int throttleVal = 0;
+int ign1Val = 0;
+int ign2Val = 0;
+float voltage = throttleVal * (5.0 / 1023.0);
+
+// alert variables
 int gear_warn = 0;
 int brake_warn = 0;
 int canopy_warn = 0;
@@ -131,7 +144,7 @@ void setup() { //configure input pins as an input and enable the internal pull-u
     Serial.println(F("Unable to begin:"));
     Serial.println(F("1.Please recheck the connection!"));
     Serial.println(F("2.Please insert the SD card!"));
-    int ledCells [] = {9, 8, 7, 6, 5, 4, 3, 2, 1, 0};
+    int ledCells [] = {5, 4, 6, 3, 7, 2, 8, 2, 9, 0}; // 5,4,6,3,7,2,8,2,9,0 or 9, 8, 7, 6, 5, 4, 3, 2, 1, 0
     uint32_t colorArray [] = {CRGB::Red, CRGB::Black, CRGB::Red, CRGB::Black, CRGB::Red};
     for (uint32_t thisColor : colorArray) {
       for (int thisCell : ledCells) {
@@ -142,13 +155,13 @@ void setup() { //configure input pins as an input and enable the internal pull-u
     }
     //while (true);
   } else {
-    int ledCells [] = {9, 8, 7, 6, 5, 4, 3, 2, 1, 0};
+    int ledCells [] = {9, 0, 8, 1, 7, 2, 6, 3, 5, 4}; // 9,0,8,1,7,2,6,3,5,4
     uint32_t colorArray [] = {CRGB::Blue, CRGB::Yellow, CRGB::Green, CRGB::Black, CRGB::Blue, CRGB::Yellow, CRGB::Green};
     for (uint32_t thisColor : colorArray) {
       for (int thisCell : ledCells) {
         leds[thisCell] = thisColor;
         FastLED.show();
-        delay(70);
+        delay(50);
       }
     }
   }
@@ -165,19 +178,31 @@ void loop() {
 
   currentMillis = millis();
 
+  readSwitchState();
+
+  // Set the alert state
+  alert = isAlertState(gearVal, canopyVal, lbVal, throttleAverage, lowvoltVal, boostpumpVal);
+
+  // Call the display function after reading the alert state
+  display(gearVal, canopyVal, lbVal, throttleAverage, silenceVal, testVal, lowvoltVal, boostpumpVal, ign1Val, ign2Val);
+
+  playMp3();
+
+}
+
+void readSwitchState() {
   //read the switch value into a variable
-  int gearVal = digitalRead(GEAR_SW);
-  int canopyVal = digitalRead(CANOPY_SW);
-  int lbVal = digitalRead(LB_SW);
-  int testVal = digitalRead(TEST_SW);
-  int silenceVal = digitalRead(SILENCE_SW);
-  int lowvoltVal = digitalRead(LOWVOLT_SW);
-  int boostpumpVal = digitalRead(BOOSTPUMP_SW);
-  int throttleVal = analogRead(THROTTLE_IN);
-  //int throttleVal = digitalRead(THROTTLE_SW);
-  int ign1Val = digitalRead(IGN1_SW);
-  int ign2Val = digitalRead(IGN2_SW);
-  float voltage = throttleVal * (5.0 / 1023.0);
+  gearVal = digitalRead(GEAR_SW);
+  canopyVal = digitalRead(CANOPY_SW);
+  lbVal = digitalRead(LB_SW);
+  testVal = digitalRead(TEST_SW);
+  silenceVal = digitalRead(SILENCE_SW);
+  lowvoltVal = digitalRead(LOWVOLT_SW);
+  boostpumpVal = digitalRead(BOOSTPUMP_SW);
+  throttleVal = analogRead(THROTTLE_IN);
+  ign1Val = digitalRead(IGN1_SW);
+  ign2Val = digitalRead(IGN2_SW);
+  voltage = throttleVal * (5.0 / 1023.0);
 
   // subtract the last reading of the throttle to average it out:
   total = total - readings[readIndex];
@@ -201,21 +226,10 @@ void loop() {
   //Serial.println(throttleAverage);
   delay(1);        // delay in between reads for stability
 
-  // Set the alert state
-  alert = isAlertState(gearVal, canopyVal, lbVal, throttleAverage, lowvoltVal, boostpumpVal);
-
-  // Call the display function after reading the alert state
-  display(gearVal, canopyVal, lbVal, throttleAverage, silenceVal, testVal, lowvoltVal, boostpumpVal, ign1Val, ign2Val);
-
-  // write the voltage value to the serial monitor:
-  //Serial.print(throttleVal);
-  //Serial.print("\t");
-  //Serial.print(voltage);
-  //Serial.println();
-  //Serial.println(throttleAverage);
-  //Serial.println(ign1Val);
-  //Serial.println(boostpumpVal);
-
+  if (silenceVal) {  // Read if the Silence switch had been toggled; if so, start the 1 minute timer (processed in the playMp3() function
+    previousSilencedMillis = currentMillis;  // reset the previousSilencedMillis counter
+    Serial.println("The Silenced Switch was pressed!");
+  }
 }
 
 /* * check the logic to see if there is a master warning to display
@@ -339,16 +353,6 @@ void display(int gearVal, int canopyVal, int lbVal, int throttleAverage, int sil
         leds[3] = CRGB::Black;
         leds[2] = CRGB::Black;
       }
-      /*
-            if (lowvolt_warn) {
-              //Serial.println("Caution issued due to Low Volt warning");
-              leds[1] = CRGB::Yellow;
-              leds[0] = CRGB::Yellow;
-            } else {
-              leds[1] = CRGB::Black;
-              leds[0] = CRGB::Black;
-            }
-      */
       if (!(lowvoltVal) && (ign1Val == IGN1_IS_OFF) && (ign2Val != IGN2_IS_OFF)) {
         leds[0] = CRGB::Blue;
         leds[1] = CRGB::Black;
@@ -364,48 +368,6 @@ void display(int gearVal, int canopyVal, int lbVal, int throttleAverage, int sil
       if (!(lowvoltVal) && (ign1Val != IGN1_IS_OFF) && (ign2Val != IGN2_IS_OFF)) {
         leds[0] = CRGB::Black;
         leds[1] = CRGB::Black;
-      }
-      //digitalWrite(ALARM_OUT, HIGH);
-      if ((currentMillis - previousSilencedMillis) <= silenceInterval) {
-        //Serial.println("Previous Silenced is <= the Silence Interval");
-        //Serial.println();
-      } else {
-        //Serial.println("Previous Silenced is >= the Silence Interval");
-        //Serial.println();
-        if ((currentMillis - lastPlayMillis) >= 11000) {
-          for (int i = 0; i < 2; i++) {
-            if (gear_warn) {
-              myDFPlayer.play(2); //gear
-            }
-            if (brake_warn) {
-              myDFPlayer.play(3); //brake
-            }
-            if (canopy_warn) {
-              myDFPlayer.play(4); //canopy
-            }
-            /*
-              if ((brake_warn) && (canopy_warn)) {
-              myDFPlayer.play(3); //brake
-              delay(1000);
-              myDFPlayer.play(4); //canopy
-              }
-            */
-            lastPlayMillis = currentMillis;
-            //Serial.print("I:");
-            //Serial.print(i);
-            //Serial.print("\t");
-            //Serial.println();
-            delay(1100);
-          }
-        }
-      }
-      /*
-            if (lowvolt_warn) {
-              myDFPlayer.play(5); //lowvolt
-            }
-      */
-      if (silenceVal == HIGH) {
-        previousSilencedMillis = currentMillis;
       }
     } else { // When not in Alarm state, ensure Black LEDs with exception of when IGN1|IGN2 are not on...
       if (gearVal == GEAR_IS_RETRACTED) { //HIGH means that the gear is retracted; LOW means that the gear is extended
@@ -455,37 +417,61 @@ void display(int gearVal, int canopyVal, int lbVal, int throttleAverage, int sil
     leds[0] = CRGB::Black;
   }
   if (boostpumpVal) { // This uses the left half of the Canopy light cell
-    //Serial.println("Caution issued due to Canopy warning");
+    //Serial.println("Caution issued due to Boost Pump warning");
     leds[3] = CRGB::Purple;
     //leds[2] = CRGB::Purple;
   } else {
     leds[3] = CRGB::Black;
     //leds[2] = CRGB::Black;
   }
-  //Serial.print("Current Millis:");
-  //Serial.print("\t");
-  //Serial.print(currentMillis);
-  //Serial.println();
-  //Serial.print("previousSilencedMillis");
-  //Serial.print("\t");
-  //Serial.print(previousSilencedMillis);
-  //Serial.println();
-  //Serial.print("Silenced Switch pressed:");
-  //Serial.print(silenceVal);
-  //Serial.println();
+
+  FastLED.show();
+  delay(500);
+}
+
+void playMp3() {
+  //digitalWrite(ALARM_OUT, HIGH);
+  if (alert) {
+    if ((currentMillis - previousSilencedMillis) <= silenceInterval) {
+      //Serial.println("Previous Silenced is <= the Silence Interval");
+      //Serial.println();
+    } else {
+      //Serial.println("Previous Silenced is >= the Silence Interval");
+      //Serial.println();
+
+      if ((currentMillis - lastPlayMillis) >= alertInterval) {
+        for (int i = 0; i < 2; i++) {
+          if (gear_warn) {
+            myDFPlayer.play(2); //gear
+          }
+          if (brake_warn) {
+            myDFPlayer.play(3); //brake
+          }
+          if (canopy_warn) {
+            myDFPlayer.play(4); //canopy
+          }
+          /*
+            if ((brake_warn) && (canopy_warn)) {
+            myDFPlayer.play(3); //brake
+            delay(1000);
+            myDFPlayer.play(4); //canopy
+            }
+          */
+          lastPlayMillis = currentMillis;  // reset the lastPlayMillis counter
+          delay(1100);
+        }
+      }
+    }
+  }
+
   Serial.print("currentMillis - previousSilencedMillis:");
   Serial.print("\t");
   Serial.print(currentMillis - previousSilencedMillis);
   Serial.println();
-  //Serial.print("silenceInterval:");
-  //Serial.print(silenceInterval);
-  //Serial.println();
+
   Serial.print("currentMillis - lastPlayMillis:");
   Serial.print("\t");
   Serial.print(currentMillis - lastPlayMillis);
   Serial.println();
   Serial.println();
-  
-  FastLED.show();
-  delay(500);
 }
