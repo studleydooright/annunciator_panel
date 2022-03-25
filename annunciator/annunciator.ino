@@ -401,7 +401,7 @@ void display(int gearVal, int canopyVal, int lbVal, int throttleAverage, int sil
     leds[3] = CRGB::Purple;
     //leds[2] = CRGB::Purple;
   } else {
-    leds[3] = CRGB::Black;
+    //leds[3] = CRGB::Black;
     //leds[2] = CRGB::Black;
   }
 
