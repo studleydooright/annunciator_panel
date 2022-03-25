@@ -406,7 +406,7 @@ void display(int gearVal, int canopyVal, int lbVal, int throttleAverage, int sil
   }
 
   FastLED.show();
-  delay(500);
+  delay(250);
 }
 
 void playMp3() {
