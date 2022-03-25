@@ -438,25 +438,22 @@ void playMp3() {
     } else {
       //Serial.println("Previous Silenced is >= the Silence Interval");
       //Serial.println();
-
       if ((currentMillis - lastPlayMillis) >= alertInterval) {
         for (int i = 0; i < 2; i++) {
           if (gear_warn) {
             myDFPlayer.play(2); //gear
           }
-          if (brake_warn) {
+          if (brake_warn && !canopy_warn) {
             myDFPlayer.play(3); //brake
           }
-          if (canopy_warn) {
+          if (canopy_warn && !brake_warn) {
             myDFPlayer.play(4); //canopy
           }
-          /*
-            if ((brake_warn) && (canopy_warn)) {
+          if ((brake_warn && canopy_warn)) {
             myDFPlayer.play(3); //brake
             delay(1000);
             myDFPlayer.play(4); //canopy
-            }
-          */
+          }
           lastPlayMillis = currentMillis;  // reset the lastPlayMillis counter
           delay(1100);
         }
