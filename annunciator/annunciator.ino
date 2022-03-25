@@ -399,10 +399,7 @@ void display(int gearVal, int canopyVal, int lbVal, int throttleAverage, int sil
   if (boostpumpVal) { // This uses the left half of the Canopy light cell
     //Serial.println("Caution issued due to Boost Pump warning");
     leds[3] = CRGB::Purple;
-    //leds[2] = CRGB::Purple;
-  } else {
-    //leds[3] = CRGB::Black;
-    //leds[2] = CRGB::Black;
+    leds[2] = CRGB::Purple;
   }
 
   FastLED.show();
