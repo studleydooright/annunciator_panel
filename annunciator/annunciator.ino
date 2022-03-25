@@ -94,7 +94,7 @@ int IGN2_IS_OFF = HIGH; // LED is ON when Ignition is off (HIGH)
 unsigned long currentMillis = 0;
 unsigned long previousAlertMillis = 0;
 unsigned long previousBoostAlertMillis = 0;
-unsigned long previousSilencedMillis = 60000;
+unsigned long previousSilencedMillis = 0;
 unsigned long playInterval = 5000;
 unsigned long lastPlayMillis = 0;
 
