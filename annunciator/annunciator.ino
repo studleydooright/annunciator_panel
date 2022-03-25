@@ -39,7 +39,7 @@ DFRobotDFPlayerMini myDFPlayer;
 int GEAR_SW = 3;
 int CANOPY_SW = 4;
 int TEST_SW = 5;
-int SILENCE_SW = 7;
+int SILENCE_SW = 7;  //Was pin6, but it died on the arduino
 int LB_SW = 10;
 int LOWVOLT_SW = 11;
 int THROTTLE_IN = 19; // analog pin A1; digital pin 19
@@ -58,7 +58,7 @@ int IGN2_SW = 23; //Now analog 4 was digital 13; //DSUB pin 9
 int THROTTLE_LOW = 260; // fast idle (N40EB needs 260) (1.28volts)
 int THROTTLE_ADVANCED = 350; // above taxi power (N40EB needs 350)  (1.71volts)
 
-// switch variables
+// switch variables and starting values
 int gearVal = 0;
 int canopyVal = 0;
 int lbVal = 0;
@@ -71,7 +71,7 @@ int ign1Val = 0;
 int ign2Val = 0;
 float voltage = throttleVal * (5.0 / 1023.0);
 
-// alert variables
+// alert variables and starting values
 int gear_warn = 0;
 int brake_warn = 0;
 int canopy_warn = 0;
@@ -81,7 +81,7 @@ int adjbright;
 int alert = 0;
 int silenced_state = 0;
 
-// Set the switch positions (HIGH/LOW) for the gear, landing brake, and canopy; change these as needed for testing
+// Set Nicknames for the switch positions (HIGH/LOW) for the gear, landing brake, and canopy; change these as needed for testing
 int GEAR_IS_RETRACTED = HIGH; //N40EB needs HIGH
 int LB_IS_EXTENDED = LOW; //N40EB needs LOW
 int CANOPY_IS_OPEN = HIGH; //N40EB needs HIGH
@@ -90,6 +90,7 @@ int BOOSTPUMP_IS_ON = HIGH;
 int IGN1_IS_OFF = HIGH; // LED is ON when Ignition is off (HIGH; do we need pull-down resistors?)
 int IGN2_IS_OFF = HIGH; // LED is ON when Ignition is off (HIGH)
 
+// Set some time based variables
 unsigned long currentMillis = 0;
 unsigned long previousAlertMillis = 0;
 unsigned long previousBoostAlertMillis = 0;
@@ -121,7 +122,6 @@ void setup() { //configure input pins as an input and enable the internal pull-u
   pinMode(THROTTLE_IN, INPUT);
   pinMode(IGN1_SW, INPUT);
   pinMode(IGN2_SW, INPUT);
-  // configure output pins for output.
 
   mySoftwareSerial.begin(9600);
   Serial.begin(9600);
@@ -132,7 +132,7 @@ void setup() { //configure input pins as an input and enable the internal pull-u
 
   //Serial.println("done");
   delay(1000);
-  // initialize all the readings to 0:
+  // initialize all the Throttle readings to 0:
   for (int thisReading = 0; thisReading < numReadings; thisReading++) {
     readings[thisReading] = 0;
   }
@@ -175,19 +175,20 @@ void setup() { //configure input pins as an input and enable the internal pull-u
 /** * Read all the switches and call the display function
 */
 void loop() {
-
+  // Store the current milliseconds value each loop
   currentMillis = millis();
 
+  // Read the values of all the switches
   readSwitchState();
 
-  // Set the alert state
+  // Set the alert state and return value
   alert = isAlertState(gearVal, canopyVal, lbVal, throttleAverage, lowvoltVal, boostpumpVal);
 
   // Call the display function after reading the alert state
   display(gearVal, canopyVal, lbVal, throttleAverage, silenceVal, testVal, lowvoltVal, boostpumpVal, ign1Val, ign2Val);
 
+  // Invoke the MP3 module
   playMp3();
-
 }
 
 void readSwitchState() {
@@ -222,10 +223,9 @@ void readSwitchState() {
   // calculate the throttleAverage:
   throttleAverage = total / numReadings;
   throttleAverage = throttleVal;
-  // send it to the computer as ASCII digits
-  //Serial.println(throttleAverage);
   delay(1);        // delay in between reads for stability
 
+  // Check to see if the Silenced switch was toggled; if so, reset the timer
   if (silenceVal) {  // Read if the Silence switch had been toggled; if so, start the 1 minute timer (processed in the playMp3() function
     previousSilencedMillis = currentMillis;  // reset the previousSilencedMillis counter
     Serial.println("The Silenced Switch was pressed!");
@@ -245,14 +245,7 @@ int isAlertState(int gearVal, int canopyVal, int lbVal, int throttleAverage, int
   lowvolt_warn = 0;
   boostpump_warn = 0;
 
-  // low volt check; I no longer want to treat the Low Volt indicator as an alarm, as it's a typical thing when engine not running or at low rpm...
-  /*
-    if (lowvoltVal) {
-      alert = 1;
-      lowvolt_warn = 1;
-      //Serial.println("Low volts");
-    }
-  */
+  // Read throttle position and correlate if we should alert based on gear, brake, and canopy states
   if ((throttleAverage >= THROTTLE_ADVANCED) && (canopyVal == CANOPY_IS_OPEN)) {
     alert = 1;
     canopy_warn = 1;
@@ -275,26 +268,14 @@ int isAlertState(int gearVal, int canopyVal, int lbVal, int throttleAverage, int
     //Serial.println("Throttle is closed, gear retracted; gear_warn = 1");
   }
 
-  //Serial.println(alert);
   return alert;
 }
 
-/** * Process all the logic, to allow displaying LEDs in
-  proper state, and handle master alarm state,
-  including sound.
-*/
 void display(int gearVal, int canopyVal, int lbVal, int throttleAverage, int silenceVal, int testVal, int lowvoltVal, int boostpumpVal, int ign1Val, int ign2Val)
 {
-
-  //Serial.println("Alert state ");
-  //Serial.println(alert);
-
   FastLED.clear();
 
-  // Keep in mind the pullup means the pushbutton's
-  // logic is inverted. It goes HIGH when it's open,
-  // and LOW when it's pressed.:
-
+  // If the Test switch is toggled, light up all the LEDs, play the System Test MP3, and increase the brightness
   if (testVal == TEST_IS_PRESSED) {
     //Serial.println("Test button pressed");
     // MASTER (red)
@@ -320,10 +301,9 @@ void display(int gearVal, int canopyVal, int lbVal, int throttleAverage, int sil
     } else {
       adjbright = 1;
     }
-    //Serial.println(adjbright);
     myDFPlayer.play(1);  //Play the SystemTest file
     delay(1000);
-  } else {
+  } else {  // If in the Alert state, correctly set the LEDs per the warning variables
     if (alert) {
       //Serial.println("Master Caution issued");
       leds[9] = CRGB::Red;
