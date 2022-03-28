@@ -226,7 +226,7 @@ void readSwitchState() {
   delay(1);        // delay in between reads for stability
 
   // Check to see if the Silenced switch was toggled; if so, reset the timer
-  if (silenceVal) {  // Read if the Silence switch had been toggled; if so, start the 1 minute timer (processed in the playMp3() function
+  if (!silenceVal) {  // Read if the Silence switch had been toggled; if so, start the 1 minute timer (processed in the playMp3() function
     previousSilencedMillis = currentMillis;  // reset the previousSilencedMillis counter
     Serial.println("The Silenced Switch was pressed!");
   }
@@ -392,9 +392,6 @@ void display(int gearVal, int canopyVal, int lbVal, int throttleAverage, int sil
     //Serial.println("Caution issued due to Low Volt warning");
     leds[1] = CRGB::Yellow;
     leds[0] = CRGB::Yellow;
-  } else {
-    leds[1] = CRGB::Black;
-    leds[0] = CRGB::Black;
   }
   if (boostpumpVal) { // This uses the left half of the Canopy light cell
     //Serial.println("Caution issued due to Boost Pump warning");
@@ -407,7 +404,6 @@ void display(int gearVal, int canopyVal, int lbVal, int throttleAverage, int sil
 }
 
 void playMp3() {
-  //digitalWrite(ALARM_OUT, HIGH);
   if (alert) {
     if ((currentMillis - previousSilencedMillis) <= silenceInterval) {
       //Serial.println("Previous Silenced is <= the Silence Interval");
@@ -437,6 +433,7 @@ void playMp3() {
       }
     }
   }
+
 
   Serial.print("currentMillis - previousSilencedMillis:");
   Serial.print("\t");
