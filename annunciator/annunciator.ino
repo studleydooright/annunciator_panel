@@ -27,6 +27,7 @@
 //#define CHR_DELAY 1000 // time in ms between characters
 
 const unsigned long alertInterval = 11000; //11 seconds
+const unsigned long playInterval = 3000;
 const unsigned long silenceInterval = 60000; // 1 minute
 const unsigned long boostalertInterval = 3000000; //5 minutes
 
@@ -95,7 +96,7 @@ unsigned long currentMillis = 0;
 unsigned long previousAlertMillis = 0;
 unsigned long previousBoostAlertMillis = 0;
 unsigned long previousSilencedMillis = 0;
-unsigned long playInterval = 5000;
+unsigned long intervalPlayMillis = 0;
 unsigned long lastPlayMillis = 0;
 
 // Define the number of throttle samples to keep track of. The higher the number, the
@@ -108,6 +109,8 @@ int readings[numReadings];      // the readings from the analog input
 int readIndex = 0;              // the index of the current reading
 int total = 0;                  // the running total
 int throttleAverage = 0;        // the throttleAverage
+
+void printDetail(uint8_t type, int value);
 
 void setup() { //configure input pins as an input and enable the internal pull-up resistor
   FastLED.addLeds<NEOPIXEL, LED_PIN>(leds, NUM_LEDS);
@@ -140,7 +143,7 @@ void setup() { //configure input pins as an input and enable the internal pull-u
   Serial.println(F("DFRobot DFPlayer Mini Demo"));
   Serial.println(F("Initializing DFPlayer ... (May take 3~5 seconds)"));
 
-  if (!myDFPlayer.begin(mySoftwareSerial)) {  //Use softwareSerial to communicate with mp3.
+  if (!myDFPlayer.begin(mySoftwareSerial, true, false)) {  //Use softwareSerial to communicate with mp3.
     Serial.println(F("Unable to begin:"));
     Serial.println(F("1.Please recheck the connection!"));
     Serial.println(F("2.Please insert the SD card!"));
@@ -168,7 +171,8 @@ void setup() { //configure input pins as an input and enable the internal pull-u
 
   Serial.println(F("DFPlayer Mini online."));
   myDFPlayer.volume(30);  //Set volume value. From 0 to 30
-  myDFPlayer.play(1);  //Play the first mp3 (SystemTest)
+  //myDFPlayer.play(1);  //Play the first mp3 (SystemTest)
+  playVoice(1);
 
 }
 
@@ -182,13 +186,15 @@ void loop() {
   readSwitchState();
 
   // Set the alert state and return value
-  alert = isAlertState(gearVal, canopyVal, lbVal, throttleAverage, lowvoltVal, boostpumpVal);
+  alert = isAlertState();
 
   // Call the display function after reading the alert state
-  display(gearVal, canopyVal, lbVal, throttleAverage, silenceVal, testVal, lowvoltVal, boostpumpVal, ign1Val, ign2Val);
+  display();
 
   // Invoke the MP3 module
-  playMp3();
+  queueAudio();
+
+  delay(250);
 }
 
 void readSwitchState() {
@@ -235,7 +241,7 @@ void readSwitchState() {
 /* * check the logic to see if there is a master warning to display
   returns 1 if the master warning should be set.
 */
-int isAlertState(int gearVal, int canopyVal, int lbVal, int throttleAverage, int lowvoltVal, int boostpumpVal)
+int isAlertState()
 {
   // reset the alert and warning variables each loop
   alert = 0;
@@ -271,7 +277,7 @@ int isAlertState(int gearVal, int canopyVal, int lbVal, int throttleAverage, int
   return alert;
 }
 
-void display(int gearVal, int canopyVal, int lbVal, int throttleAverage, int silenceVal, int testVal, int lowvoltVal, int boostpumpVal, int ign1Val, int ign2Val)
+void display()
 {
   FastLED.clear();
 
@@ -301,8 +307,9 @@ void display(int gearVal, int canopyVal, int lbVal, int throttleAverage, int sil
     } else {
       adjbright = 1;
     }
-    myDFPlayer.play(1);  //Play the SystemTest file
-    delay(1000);
+    //myDFPlayer.play(1);  //Play the SystemTest file
+    playVoice(1);
+    //delay(1000);
   } else {  // If in the Alert state, correctly set the LEDs per the warning variables
     if (alert) {
       //Serial.println("Master Caution issued");
@@ -400,10 +407,20 @@ void display(int gearVal, int canopyVal, int lbVal, int throttleAverage, int sil
   }
 
   FastLED.show();
-  delay(250);
 }
 
-void playMp3() {
+void playVoice(int file) {
+  myDFPlayer.play(file);
+  delay(400);
+  int playerState = 0;
+  while (playerState != 512) {
+    delay(500);
+    playerState = myDFPlayer.readState();
+  }
+  return playerState;
+}
+
+void queueAudio() {
   if (alert) {
     if ((currentMillis - previousSilencedMillis) <= silenceInterval) {
       //Serial.println("Previous Silenced is <= the Silence Interval");
@@ -411,35 +428,44 @@ void playMp3() {
     } else {
       //Serial.println("Previous Silenced is >= the Silence Interval");
       //Serial.println();
-      if ((currentMillis - lastPlayMillis) >= alertInterval) {
+      if ((currentMillis - intervalPlayMillis) >= alertInterval) {
         for (int i = 0; i < 2; i++) {
           if (gear_warn) {
-            myDFPlayer.play(2); //gear
+            //myDFPlayer.play(2); //gear
+            playVoice(2);
           }
           if (brake_warn && !canopy_warn) {
-            myDFPlayer.play(3); //brake
+            //myDFPlayer.play(3); //brake
+            playVoice(3);
           }
           if (canopy_warn && !brake_warn) {
-            myDFPlayer.play(4); //canopy
+            //myDFPlayer.play(4); //canopy
+            playVoice(4);
           }
           if ((brake_warn && canopy_warn)) {
-            myDFPlayer.play(3); //brake
-            delay(1000);
-            myDFPlayer.play(4); //canopy
+            //myDFPlayer.play(3); //brake
+            playVoice(3);
+            //myDFPlayer.play(4); //canopy
+            playVoice(4);
           }
-          lastPlayMillis = currentMillis;  // reset the lastPlayMillis counter
-          delay(1100);
         }
+
+        intervalPlayMillis = currentMillis;  // reset the lastPlayMillis counter
       }
     }
   }
 
-
+  //Serial.println(myDFPlayer.readState());
+  //Serial.print("\t");
   Serial.print("currentMillis - previousSilencedMillis:");
   Serial.print("\t");
   Serial.print(currentMillis - previousSilencedMillis);
   Serial.println();
 
+  Serial.print("currentMillis - intervalPlayMillis:");
+  Serial.print("\t");
+  Serial.print(currentMillis - intervalPlayMillis);
+  Serial.println();
   Serial.print("currentMillis - lastPlayMillis:");
   Serial.print("\t");
   Serial.print(currentMillis - lastPlayMillis);
