@@ -96,6 +96,7 @@ unsigned long currentMillis = 0;
 unsigned long previousAlertMillis = 0;
 unsigned long previousBoostAlertMillis = 0;
 unsigned long previousSilencedMillis = 0;
+unsigned long intervalBoostPumpPlayMillis = 0 ;
 unsigned long intervalPlayMillis = 0;
 unsigned long lastPlayMillis = 0;
 
@@ -172,7 +173,7 @@ void setup() { //configure input pins as an input and enable the internal pull-u
   Serial.println(F("DFPlayer Mini online."));
   myDFPlayer.volume(30);  //Set volume value. From 0 to 30
   //myDFPlayer.play(1);  //Play the first mp3 (SystemTest)
-  playVoice(1);
+  playMp3(1);
 
 }
 
@@ -194,6 +195,22 @@ void loop() {
   // Invoke the MP3 module
   queueAudio();
 
+
+  //Serial.println(myDFPlayer.readState());
+  //Serial.print("\t");
+  Serial.print("currentMillis - previousSilencedMillis:");
+  Serial.print("\t");
+  Serial.print(currentMillis - previousSilencedMillis);
+  Serial.println();
+  Serial.print("currentMillis - intervalPlayMillis:");
+  Serial.print("\t");
+  Serial.print(currentMillis - intervalPlayMillis);
+  Serial.println();
+  Serial.print("currentMillis - lastPlayMillis:");
+  Serial.print("\t");
+  Serial.print(currentMillis - lastPlayMillis);
+  Serial.println();
+  Serial.println();
   delay(250);
 }
 
@@ -308,7 +325,7 @@ void display()
       adjbright = 1;
     }
     //myDFPlayer.play(1);  //Play the SystemTest file
-    playVoice(1);
+    playMp3(1);
     //delay(1000);
   } else {  // If in the Alert state, correctly set the LEDs per the warning variables
     if (alert) {
@@ -409,15 +426,17 @@ void display()
   FastLED.show();
 }
 
-void playVoice(int file) {
-  myDFPlayer.play(file);
-  delay(400);
-  int playerState = 0;
-  while (playerState != 512) {
-    delay(500);
-    playerState = myDFPlayer.readState();
+void playMp3(int file) {
+  for (int i = 0; i < 2; i++) {
+    myDFPlayer.play(file);
+    delay(400);
+    int playerState = 0;
+    while (playerState != 512) {
+      delay(500);
+      playerState = myDFPlayer.readState();
+    }
+    //return playerState;
   }
-  return playerState;
 }
 
 void queueAudio() {
@@ -429,46 +448,30 @@ void queueAudio() {
       //Serial.println("Previous Silenced is >= the Silence Interval");
       //Serial.println();
       if ((currentMillis - intervalPlayMillis) >= alertInterval) {
-        for (int i = 0; i < 2; i++) {
-          if (gear_warn) {
-            //myDFPlayer.play(2); //gear
-            playVoice(2);
-          }
-          if (brake_warn && !canopy_warn) {
-            //myDFPlayer.play(3); //brake
-            playVoice(3);
-          }
-          if (canopy_warn && !brake_warn) {
-            //myDFPlayer.play(4); //canopy
-            playVoice(4);
-          }
-          if ((brake_warn && canopy_warn)) {
-            //myDFPlayer.play(3); //brake
-            playVoice(3);
-            //myDFPlayer.play(4); //canopy
-            playVoice(4);
-          }
+        //        for (int i = 0; i < 2; i++) {
+        if (gear_warn) {
+          playMp3(2);
         }
-
+        if (brake_warn && !canopy_warn) {
+          playMp3(3);
+        }
+        if (canopy_warn && !brake_warn) {
+          playMp3(4);
+        }
+        if ((brake_warn && canopy_warn)) {
+          playMp3(3);
+          playMp3(4);
+        }
+        //        }
         intervalPlayMillis = currentMillis;  // reset the lastPlayMillis counter
       }
     }
+  } else {
+    if (boostpumpVal) {
+      if ((currentMillis - intervalBoostPumpPlayMillis) >= boostalertInterval) {
+        playMp3(7);
+      }
+      intervalBoostPumpPlayMillis = currentMillis;  // reset the intervalBoostPumpPlayMillis counter
+    }
   }
-
-  //Serial.println(myDFPlayer.readState());
-  //Serial.print("\t");
-  Serial.print("currentMillis - previousSilencedMillis:");
-  Serial.print("\t");
-  Serial.print(currentMillis - previousSilencedMillis);
-  Serial.println();
-
-  Serial.print("currentMillis - intervalPlayMillis:");
-  Serial.print("\t");
-  Serial.print(currentMillis - intervalPlayMillis);
-  Serial.println();
-  Serial.print("currentMillis - lastPlayMillis:");
-  Serial.print("\t");
-  Serial.print(currentMillis - lastPlayMillis);
-  Serial.println();
-  Serial.println();
 }
