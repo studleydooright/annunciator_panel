@@ -460,7 +460,7 @@ void queueAudio() {
         }
         if ((brake_warn && canopy_warn)) {
           playMp3(3);
-          delay(500);
+          delay(1000);
           playMp3(4);
         }
         //        }
