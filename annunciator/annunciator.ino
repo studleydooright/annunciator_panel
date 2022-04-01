@@ -427,16 +427,16 @@ void display()
 }
 
 void playMp3(int file) {
+  int playerState = 0;
   for (int i = 0; i < 2; i++) {
     myDFPlayer.play(file);
     delay(400);
-    int playerState = 0;
     while (playerState != 512) {
       delay(500);
       playerState = myDFPlayer.readState();
     }
-    //return playerState;
   }
+  return playerState;
 }
 
 void queueAudio() {
@@ -460,6 +460,7 @@ void queueAudio() {
         }
         if ((brake_warn && canopy_warn)) {
           playMp3(3);
+          delay(500);
           playMp3(4);
         }
         //        }
@@ -469,7 +470,7 @@ void queueAudio() {
   } else {
     if (boostpumpVal) {
       if ((currentMillis - intervalBoostPumpPlayMillis) >= boostalertInterval) {
-        playMp3(7);
+        playMp3(8);
       }
       intervalBoostPumpPlayMillis = currentMillis;  // reset the intervalBoostPumpPlayMillis counter
     }
