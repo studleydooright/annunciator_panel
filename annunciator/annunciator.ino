@@ -428,7 +428,7 @@ void display()
 
 void playMp3(int file) {
   int playerState = 0;
-  for (int i = 0; i < 2; i++) {
+  for (int i = 0; i < 2; i++) {  //repeat the play twice
     myDFPlayer.play(file);
     delay(400);
     while (playerState != 512) {
