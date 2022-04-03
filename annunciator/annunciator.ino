@@ -121,7 +121,7 @@ void setup() { //configure input pins as an input and enable the internal pull-u
   pinMode(LB_SW, INPUT_PULLUP);
   pinMode(SILENCE_SW, INPUT_PULLUP);
   pinMode(TEST_SW, INPUT_PULLUP);
-  pinMode(LOWVOLT_SW, INPUT_PULLUP);
+  pinMode(LOWVOLT_SW, INPUT);
   pinMode(BOOSTPUMP_SW, INPUT);
   pinMode(THROTTLE_IN, INPUT);
   pinMode(IGN1_SW, INPUT);
@@ -129,21 +129,16 @@ void setup() { //configure input pins as an input and enable the internal pull-u
 
   mySoftwareSerial.begin(9600);
   Serial.begin(9600);
-  //Serial.print("hello!");
-  //Serial.println("init");
-
-  delay(500);
-
-  //Serial.println("done");
   delay(1000);
+
   // initialize all the Throttle readings to 0:
   for (int thisReading = 0; thisReading < numReadings; thisReading++) {
     readings[thisReading] = 0;
   }
+
   Serial.println();
   Serial.println(F("DFRobot DFPlayer Mini Demo"));
   Serial.println(F("Initializing DFPlayer ... (May take 3~5 seconds)"));
-
   if (!myDFPlayer.begin(mySoftwareSerial, true, false)) {  //Use softwareSerial to communicate with mp3.
     Serial.println(F("Unable to begin:"));
     Serial.println(F("1.Please recheck the connection!"));
@@ -172,8 +167,7 @@ void setup() { //configure input pins as an input and enable the internal pull-u
 
   Serial.println(F("DFPlayer Mini online."));
   myDFPlayer.volume(30);  //Set volume value. From 0 to 30
-  //myDFPlayer.play(1);  //Play the first mp3 (SystemTest)
-  playMp3(1);
+  playMp3(1, 1);  //Play the first mp3, once (SystemTest)
 
 }
 
@@ -198,18 +192,22 @@ void loop() {
 
   //Serial.println(myDFPlayer.readState());
   //Serial.print("\t");
-  Serial.print("currentMillis - previousSilencedMillis:");
+  //Serial.print("currentMillis - previousSilencedMillis:");
+  //Serial.print("\t");
+  //Serial.print(currentMillis - previousSilencedMillis);
+  //Serial.println();
+  //Serial.print("currentMillis - intervalPlayMillis:");
+  //Serial.print("\t");
+  //Serial.print(currentMillis - intervalPlayMillis);
+  //Serial.println();
+  //Serial.print("currentMillis - lastPlayMillis:");
+  //Serial.print("\t");
+  //Serial.print(currentMillis - lastPlayMillis);
+  //Serial.println();
+  //Serial.println();
+  Serial.print("Low Volt Value:");
   Serial.print("\t");
-  Serial.print(currentMillis - previousSilencedMillis);
-  Serial.println();
-  Serial.print("currentMillis - intervalPlayMillis:");
-  Serial.print("\t");
-  Serial.print(currentMillis - intervalPlayMillis);
-  Serial.println();
-  Serial.print("currentMillis - lastPlayMillis:");
-  Serial.print("\t");
-  Serial.print(currentMillis - lastPlayMillis);
-  Serial.println();
+  Serial.print(lowvoltVal);
   Serial.println();
   delay(250);
 }
@@ -324,9 +322,7 @@ void display()
     } else {
       adjbright = 1;
     }
-    //myDFPlayer.play(1);  //Play the SystemTest file
-    playMp3(1);
-    //delay(1000);
+    playMp3(1, 1);
   } else {  // If in the Alert state, correctly set the LEDs per the warning variables
     if (alert) {
       //Serial.println("Master Caution issued");
@@ -357,19 +353,19 @@ void display()
         leds[3] = CRGB::Black;
         leds[2] = CRGB::Black;
       }
-      if (!(lowvoltVal) && (ign1Val == IGN1_IS_OFF) && (ign2Val != IGN2_IS_OFF)) {
+      if (!(lowvoltVal) && ((ign1Val == IGN1_IS_OFF) && (ign2Val != IGN2_IS_OFF))) {
         leds[0] = CRGB::Blue;
         leds[1] = CRGB::Black;
       }
-      if (!(lowvoltVal) && (ign1Val != IGN1_IS_OFF) && (ign2Val == IGN2_IS_OFF)) {
+      if (!(lowvoltVal) && ((ign1Val != IGN1_IS_OFF) && (ign2Val == IGN2_IS_OFF))) {
         leds[0] = CRGB::Black;
         leds[1] = CRGB::Blue;
       }
-      if (!(lowvoltVal) && (ign1Val == IGN1_IS_OFF) && (ign2Val == IGN2_IS_OFF)) {
+      if (!(lowvoltVal) && ((ign1Val == IGN1_IS_OFF) && (ign2Val == IGN2_IS_OFF))) {
         leds[0] = CRGB::Black;
         leds[1] = CRGB::Black;
       }
-      if (!(lowvoltVal) && (ign1Val != IGN1_IS_OFF) && (ign2Val != IGN2_IS_OFF)) {
+      if (!(lowvoltVal) && ((ign1Val != IGN1_IS_OFF) && (ign2Val != IGN2_IS_OFF))) {
         leds[0] = CRGB::Black;
         leds[1] = CRGB::Black;
       }
@@ -389,25 +385,24 @@ void display()
         leds[2] = CRGB::Black;
         //Serial.println("Canopy is open");
       }
-      if (!(lowvoltVal) && (ign1Val == IGN1_IS_OFF) && (ign2Val != IGN2_IS_OFF)) {
+      if (!(lowvoltVal) && ((ign1Val == IGN1_IS_OFF) && (ign2Val != IGN2_IS_OFF))) {
         leds[0] = CRGB::Blue;
         leds[1] = CRGB::Black;
       }
-      if (!(lowvoltVal) && (ign1Val != IGN1_IS_OFF) && (ign2Val == IGN2_IS_OFF)) {
+      if (!(lowvoltVal) && ((ign1Val != IGN1_IS_OFF) && (ign2Val == IGN2_IS_OFF))) {
         leds[0] = CRGB::Black;
         leds[1] = CRGB::Blue;
       }
-      if (!(lowvoltVal) && (ign1Val == IGN1_IS_OFF) && (ign2Val == IGN2_IS_OFF)) {
+      if (!(lowvoltVal) && ((ign1Val == IGN1_IS_OFF) && (ign2Val == IGN2_IS_OFF))) {
         leds[0] = CRGB::Black;
         leds[1] = CRGB::Black;
       }
-      if (!(lowvoltVal) && (ign1Val != IGN1_IS_OFF) && (ign2Val != IGN2_IS_OFF)) {
+      if (!(lowvoltVal) && ((ign1Val != IGN1_IS_OFF) && (ign2Val != IGN2_IS_OFF))) {
         leds[0] = CRGB::Black;
         leds[1] = CRGB::Black;
       } else { // output the master alarm status
         leds[9] = CRGB::Black;
         leds[8] = CRGB::Black;
-        //digitalWrite(ALARM_OUT, LOW);
       }
     }
   }
@@ -426,9 +421,9 @@ void display()
   FastLED.show();
 }
 
-void playMp3(int file) {
+void playMp3(int file, int playnum) {
   int playerState = 0;
-  for (int i = 0; i < 2; i++) {  //repeat the play twice
+  for (int i = 0; i < playnum; i++) {  //repeat per the playnum
     myDFPlayer.play(file);
     delay(400);
     while (playerState != 512) {
@@ -448,29 +443,27 @@ void queueAudio() {
       //Serial.println("Previous Silenced is >= the Silence Interval");
       //Serial.println();
       if ((currentMillis - intervalPlayMillis) >= alertInterval) {
-        //        for (int i = 0; i < 2; i++) {
         if (gear_warn) {
-          playMp3(2);
+          playMp3(2, 2);
         }
         if (brake_warn && !canopy_warn) {
-          playMp3(3);
+          playMp3(3, 2);
         }
         if (canopy_warn && !brake_warn) {
-          playMp3(4);
+          playMp3(4, 2);
         }
         if ((brake_warn && canopy_warn)) {
-          playMp3(3);
+          playMp3(3, 1);
           delay(1000);
-          playMp3(4);
+          playMp3(4, 1);
         }
-        //        }
         intervalPlayMillis = currentMillis;  // reset the lastPlayMillis counter
       }
     }
   } else {
     if (boostpumpVal) {
       if ((currentMillis - intervalBoostPumpPlayMillis) >= boostalertInterval) {
-        playMp3(8);
+        playMp3(8, 2);
       }
       intervalBoostPumpPlayMillis = currentMillis;  // reset the intervalBoostPumpPlayMillis counter
     }
