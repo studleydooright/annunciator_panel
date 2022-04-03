@@ -454,7 +454,6 @@ void queueAudio() {
         }
         if ((brake_warn && canopy_warn)) {
           playMp3(3, 1);
-          delay(1000);
           playMp3(4, 1);
         }
         intervalPlayMillis = currentMillis;  // reset the lastPlayMillis counter
