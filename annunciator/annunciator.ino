@@ -81,6 +81,8 @@ int boostpump_warn = 0;
 int adjbright;
 int alert = 0;
 int silenced_state = 0;
+int alertplaycount = 0;
+int boostpumpplaycount = 0;
 
 // Set Nicknames for the switch positions (HIGH/LOW) for the gear, landing brake, and canopy; change these as needed for testing
 int GEAR_IS_RETRACTED = HIGH; //N40EB needs HIGH
@@ -196,18 +198,30 @@ void loop() {
   //Serial.print("\t");
   //Serial.print(currentMillis - previousSilencedMillis);
   //Serial.println();
-  //Serial.print("currentMillis - intervalPlayMillis:");
-  //Serial.print("\t");
-  //Serial.print(currentMillis - intervalPlayMillis);
-  //Serial.println();
-  //Serial.print("currentMillis - lastPlayMillis:");
-  //Serial.print("\t");
-  //Serial.print(currentMillis - lastPlayMillis);
-  //Serial.println();
-  //Serial.println();
-  Serial.print("Low Volt Value:");
+  Serial.print("currentMillis - intervalPlayMillis:");
   Serial.print("\t");
-  Serial.print(lowvoltVal);
+  Serial.print(currentMillis - intervalPlayMillis);
+  Serial.println();
+  Serial.print("currentMillis - lastPlayMillis:");
+  Serial.print("\t");
+  Serial.print(currentMillis - lastPlayMillis);
+  Serial.println();
+  Serial.print("currentMillis - intervalBoostPumpPlayMillis:");
+  Serial.print("\t");
+  Serial.print(currentMillis - intervalBoostPumpPlayMillis);
+  Serial.println();
+  //Serial.println();
+  //Serial.print("Low Volt Value:");
+  //Serial.print("\t");
+  //Serial.print(lowvoltVal);
+  //Serial.println();
+  Serial.print("Alert Play Count:");
+  Serial.print("\t");
+  Serial.print(alertplaycount);
+  Serial.println();
+  Serial.print("Boost Pump Play Count:");
+  Serial.print("\t");
+  Serial.print(boostpumpplaycount);
   Serial.println();
   delay(250);
 }
@@ -436,7 +450,7 @@ void playMp3(int file, int playnum) {
 
 void queueAudio() {
   if (alert) {
-    if ((currentMillis - previousSilencedMillis) <= silenceInterval) {
+    if ((alertplaycount > 5) && (currentMillis - previousSilencedMillis) <= silenceInterval) {  // if the initial play count is low, bypass the previous silenced check
       //Serial.println("Previous Silenced is <= the Silence Interval");
       //Serial.println();
     } else {
@@ -457,14 +471,17 @@ void queueAudio() {
           playMp3(4, 1);
         }
         intervalPlayMillis = currentMillis;  // reset the lastPlayMillis counter
+        alertplaycount++;
       }
     }
-  } else {
-    if (boostpumpVal) {
-      if ((currentMillis - intervalBoostPumpPlayMillis) >= boostalertInterval) {
-        playMp3(8, 2);
-      }
+  }
+  if (boostpumpVal) {
+    if ((boostpumpplaycount > 1) && (currentMillis - intervalBoostPumpPlayMillis) <= boostalertInterval) {
+    } else {
+      playMp3(8, 2);
       intervalBoostPumpPlayMillis = currentMillis;  // reset the intervalBoostPumpPlayMillis counter
+      boostpumpplaycount++;
     }
+
   }
 }
