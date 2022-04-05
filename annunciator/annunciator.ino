@@ -29,7 +29,7 @@
 const unsigned long alertInterval = 11000; //11 seconds
 const unsigned long playInterval = 3000;
 const unsigned long silenceInterval = 60000; // 1 minute
-const unsigned long boostalertInterval = 3000000; //5 minutes
+const unsigned long boostalertInterval = 300000; //5 minutes
 
 CRGB leds[NUM_LEDS];
 
