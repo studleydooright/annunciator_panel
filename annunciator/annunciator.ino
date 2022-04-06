@@ -198,10 +198,10 @@ void loop() {
 
   //Serial.println(myDFPlayer.readState());
   //Serial.print("\t");
-  //Serial.print("currentMillis - previousSilencedMillis:");
-  //Serial.print("\t");
-  //Serial.print(currentMillis - previousSilencedMillis);
-  //Serial.println();
+  Serial.print("currentMillis - previousSilencedMillis:");
+  Serial.print("\t");
+  Serial.print(currentMillis - previousSilencedMillis);
+  Serial.println();
   Serial.print("currentMillis - intervalPlayMillis:");
   Serial.print("\t");
   Serial.print(currentMillis - intervalPlayMillis);
@@ -227,7 +227,10 @@ void loop() {
   Serial.print("\t");
   Serial.print(alertplaycount);
   Serial.println();
-  Serial.print("Boost Pump Play Count:");
+  Serial.print("Boost Pump Val:");
+  Serial.print("\t");
+  Serial.print(boostpumpVal);
+  Serial.println();  Serial.print("Boost Pump Play Count:");
   Serial.print("\t");
   Serial.print(boostpumpplaycount);
   Serial.println();
@@ -464,7 +467,7 @@ void playMp3(int file, int playnum) {
 
 void queueAudio() {
   if (alert) {
-    if ((alertplaycount > 5) && (currentMillis - previousSilencedMillis) <= silenceInterval) {  // if the initial play count is low, bypass the previous silenced check
+    if ((alertplaycount > 1) && (currentMillis - previousSilencedMillis) <= silenceInterval) {  // if the initial play count is low, bypass the previous silenced check
       //Serial.println("Previous Silenced is <= the Silence Interval");
       //Serial.println();
     } else {
