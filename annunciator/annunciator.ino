@@ -42,7 +42,7 @@ int CANOPY_SW = 4;
 int TEST_SW = 5;
 int SILENCE_SW = 7;  //Was pin6, but it died on the arduino
 int LB_SW = 10;
-int LOWVOLT_SW = 11;
+int LOWVOLT_SW = 20;
 int THROTTLE_IN = 19; // analog pin A1; digital pin 19
 int BOOSTPUMP_SW = 21; // Analog 3
 int IGN1_SW = 22; //Now analog 5 was digital 12; //DSUB pin 8
@@ -93,6 +93,8 @@ int BOOSTPUMP_IS_ON = HIGH;
 int IGN1_IS_OFF = HIGH; // LED is ON when Ignition is off (HIGH; do we need pull-down resistors?)
 int IGN2_IS_OFF = HIGH; // LED is ON when Ignition is off (HIGH)
 
+int mp3player_fault = 0;
+
 // Set some time based variables
 unsigned long currentMillis = 0;
 unsigned long previousAlertMillis = 0;
@@ -141,7 +143,8 @@ void setup() { //configure input pins as an input and enable the internal pull-u
   Serial.println();
   Serial.println(F("DFRobot DFPlayer Mini Demo"));
   Serial.println(F("Initializing DFPlayer ... (May take 3~5 seconds)"));
-  if (!myDFPlayer.begin(mySoftwareSerial, true, false)) {  //Use softwareSerial to communicate with mp3.
+  delay(250);
+  if (!myDFPlayer.begin(mySoftwareSerial, true)) {  //Use softwareSerial to communicate with mp3.
     Serial.println(F("Unable to begin:"));
     Serial.println(F("1.Please recheck the connection!"));
     Serial.println(F("2.Please insert the SD card!"));
@@ -154,6 +157,7 @@ void setup() { //configure input pins as an input and enable the internal pull-u
         delay(50);
       }
     }
+    mp3player_fault = 1;
     //while (true);
   } else {
     int ledCells [] = {9, 0, 8, 1, 7, 2, 6, 3, 5, 4}; // 9,0,8,1,7,2,6,3,5,4
@@ -211,10 +215,14 @@ void loop() {
   Serial.print(currentMillis - intervalBoostPumpPlayMillis);
   Serial.println();
   //Serial.println();
-  //Serial.print("Low Volt Value:");
-  //Serial.print("\t");
-  //Serial.print(lowvoltVal);
-  //Serial.println();
+  Serial.print("Low Volt Value:");
+  Serial.print("\t");
+  Serial.print(lowvoltVal);
+  Serial.println();
+  Serial.print("Low Volt Warn:");
+  Serial.print("\t");
+  Serial.print(lowvolt_warn);
+  Serial.println();
   Serial.print("Alert Play Count:");
   Serial.print("\t");
   Serial.print(alertplaycount);
@@ -233,7 +241,7 @@ void readSwitchState() {
   lbVal = digitalRead(LB_SW);
   testVal = digitalRead(TEST_SW);
   silenceVal = digitalRead(SILENCE_SW);
-  lowvoltVal = digitalRead(LOWVOLT_SW);
+  lowvoltVal = digitalRead(LOWVOLT_SW); //reads 3 volts when activated (632 value)
   boostpumpVal = digitalRead(BOOSTPUMP_SW);
   throttleVal = analogRead(THROTTLE_IN);
   ign1Val = digitalRead(IGN1_SW);
@@ -279,6 +287,10 @@ int isAlertState()
   gear_warn = 0;
   lowvolt_warn = 0;
   boostpump_warn = 0;
+
+  if (lowvoltVal) {
+    lowvolt_warn = 1;
+  }
 
   // Read throttle position and correlate if we should alert based on gear, brake, and canopy states
   if ((throttleAverage >= THROTTLE_ADVANCED) && (canopyVal == CANOPY_IS_OPEN)) {
@@ -367,19 +379,19 @@ void display()
         leds[3] = CRGB::Black;
         leds[2] = CRGB::Black;
       }
-      if (!(lowvoltVal) && ((ign1Val == IGN1_IS_OFF) && (ign2Val != IGN2_IS_OFF))) {
+      if (!(lowvolt_warn) && ((ign1Val == IGN1_IS_OFF) && (ign2Val != IGN2_IS_OFF))) {
         leds[0] = CRGB::Blue;
         leds[1] = CRGB::Black;
       }
-      if (!(lowvoltVal) && ((ign1Val != IGN1_IS_OFF) && (ign2Val == IGN2_IS_OFF))) {
+      if (!(lowvolt_warn) && ((ign1Val != IGN1_IS_OFF) && (ign2Val == IGN2_IS_OFF))) {
         leds[0] = CRGB::Black;
         leds[1] = CRGB::Blue;
       }
-      if (!(lowvoltVal) && ((ign1Val == IGN1_IS_OFF) && (ign2Val == IGN2_IS_OFF))) {
+      if (!(lowvolt_warn) && ((ign1Val == IGN1_IS_OFF) && (ign2Val == IGN2_IS_OFF))) {
         leds[0] = CRGB::Black;
         leds[1] = CRGB::Black;
       }
-      if (!(lowvoltVal) && ((ign1Val != IGN1_IS_OFF) && (ign2Val != IGN2_IS_OFF))) {
+      if (!(lowvolt_warn) && ((ign1Val != IGN1_IS_OFF) && (ign2Val != IGN2_IS_OFF))) {
         leds[0] = CRGB::Black;
         leds[1] = CRGB::Black;
       }
@@ -399,19 +411,19 @@ void display()
         leds[2] = CRGB::Black;
         //Serial.println("Canopy is open");
       }
-      if (!(lowvoltVal) && ((ign1Val == IGN1_IS_OFF) && (ign2Val != IGN2_IS_OFF))) {
+      if (!(lowvolt_warn) && ((ign1Val == IGN1_IS_OFF) && (ign2Val != IGN2_IS_OFF))) {
         leds[0] = CRGB::Blue;
         leds[1] = CRGB::Black;
       }
-      if (!(lowvoltVal) && ((ign1Val != IGN1_IS_OFF) && (ign2Val == IGN2_IS_OFF))) {
+      if (!(lowvolt_warn) && ((ign1Val != IGN1_IS_OFF) && (ign2Val == IGN2_IS_OFF))) {
         leds[0] = CRGB::Black;
         leds[1] = CRGB::Blue;
       }
-      if (!(lowvoltVal) && ((ign1Val == IGN1_IS_OFF) && (ign2Val == IGN2_IS_OFF))) {
+      if (!(lowvolt_warn) && ((ign1Val == IGN1_IS_OFF) && (ign2Val == IGN2_IS_OFF))) {
         leds[0] = CRGB::Black;
         leds[1] = CRGB::Black;
       }
-      if (!(lowvoltVal) && ((ign1Val != IGN1_IS_OFF) && (ign2Val != IGN2_IS_OFF))) {
+      if (!(lowvolt_warn) && ((ign1Val != IGN1_IS_OFF) && (ign2Val != IGN2_IS_OFF))) {
         leds[0] = CRGB::Black;
         leds[1] = CRGB::Black;
       } else { // output the master alarm status
@@ -421,7 +433,7 @@ void display()
     }
   }
   // Examine the Low Volt or Boost Pump states regardless of Alarm state
-  if (lowvoltVal) {
+  if (lowvolt_warn) {
     //Serial.println("Caution issued due to Low Volt warning");
     leds[1] = CRGB::Yellow;
     leds[0] = CRGB::Yellow;
@@ -436,16 +448,18 @@ void display()
 }
 
 void playMp3(int file, int playnum) {
+  if (!mp3player_fault) {
   int playerState = 0;
   for (int i = 0; i < playnum; i++) {  //repeat per the playnum
-    myDFPlayer.play(file);
-    delay(400);
-    while (playerState != 512) {
-      delay(500);
-      playerState = myDFPlayer.readState();
+      myDFPlayer.play(file);
+      delay(400);
+      while (playerState != 512) {
+        delay(500);
+        playerState = myDFPlayer.readState();
+      }
     }
+    return playerState;
   }
-  return playerState;
 }
 
 void queueAudio() {
@@ -476,9 +490,9 @@ void queueAudio() {
     }
   }
   if (boostpumpVal) {
-    if ((boostpumpplaycount > 1) && (currentMillis - intervalBoostPumpPlayMillis) <= boostalertInterval) {
+    if ((boostpumpplaycount > 0) && (currentMillis - intervalBoostPumpPlayMillis) <= boostalertInterval) {
     } else {
-      playMp3(8, 2);
+      playMp3(8, 1);
       intervalBoostPumpPlayMillis = currentMillis;  // reset the intervalBoostPumpPlayMillis counter
       boostpumpplaycount++;
     }
