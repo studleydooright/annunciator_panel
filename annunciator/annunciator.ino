@@ -291,7 +291,7 @@ int isAlertState()
   lowvolt_warn = 0;
   boostpump_warn = 0;
 
-  if (lowvoltVal) {
+  if (!lowvoltVal) {
     lowvolt_warn = 1;
   }
 
@@ -443,8 +443,8 @@ void display()
   }
   if (boostpumpVal) { // This uses the left half of the Canopy light cell
     //Serial.println("Caution issued due to Boost Pump warning");
-    leds[3] = CRGB::Purple;
-    leds[2] = CRGB::Purple;
+    leds[1] = CRGB::Purple;
+    leds[0] = CRGB::Purple;
   }
 
   FastLED.show();
