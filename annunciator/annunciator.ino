@@ -56,7 +56,7 @@ int IGN2_SW = 23; //Now analog 4 was digital 13; //DSUB pin 9
 // Vol 4.9 4.4 3.8  3.3   2.7   2.2   1.7   1.1   0.6   0.3   0.3
 // Arduino Analog to Digital conv range 0 - 1023
 
-int THROTTLE_LOW = 260; // fast idle (N40EB needs 260) (1.28volts)
+int THROTTLE_LOW = 220; // fast idle (N40EB needs 260) (1.28volts)
 int THROTTLE_ADVANCED = 350; // above taxi power (N40EB needs 350)  (1.71volts)
 
 // switch variables and starting values
