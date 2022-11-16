@@ -495,7 +495,7 @@ void queueAudio() {
   if (boostpumpVal) {
     if ((boostpumpplaycount > 0) && (currentMillis - intervalBoostPumpPlayMillis) <= boostalertInterval) {
     } else {
-      playMp3(8, 1);
+      playMp3(9, 1);
       intervalBoostPumpPlayMillis = currentMillis;  // reset the intervalBoostPumpPlayMillis counter
       boostpumpplaycount++;
     }
