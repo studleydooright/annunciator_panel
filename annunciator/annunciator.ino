@@ -82,8 +82,16 @@ int throttleTotal = 0;
 void setup() {
   FastLED.addLeds<NEOPIXEL, LED_PIN>(leds, NUM_LEDS);
   FastLED.setBrightness(BRIGHTNESS);
-  for (uint8_t pin : {GEAR_SW, CANOPY_SW, LB_SW, TEST_SW, SILENCE_SW}) pinMode(pin, INPUT_PULLUP);
-  for (uint8_t pin : {LOWVOLT_SW, BOOSTPUMP_SW, THROTTLE_IN, IGN1_SW, IGN2_SW}) pinMode(pin, INPUT);
+const uint8_t pullupPins[] = {GEAR_SW, CANOPY_SW, LB_SW, TEST_SW, SILENCE_SW};
+const uint8_t inputPins[]  = {LOWVOLT_SW, BOOSTPUMP_SW, THROTTLE_IN, IGN1_SW, IGN2_SW};
+
+for (uint8_t i = 0; i < sizeof(pullupPins) / sizeof(pullupPins[0]); i++) {
+  pinMode(pullupPins[i], INPUT_PULLUP);
+}
+for (uint8_t i = 0; i < sizeof(inputPins) / sizeof(inputPins[0]); i++) {
+  pinMode(inputPins[i], INPUT);
+}
+
 
   mp3Serial.begin(9600);
   Serial.begin(9600);
